@@ -1,0 +1,1687 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>燕云十六声 - 武器重铸</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;700&display=swap');
+
+        :root {
+            --gold-light: #fef0b9; --gold-base: #dfb564;
+            --purple-light: #e4cfff; --purple-base: #a675ca;
+            --blue-light: #bdf0ff; --blue-base: #6daecc;
+            --bg-color: #050608; 
+            --font-main: 'Noto Serif SC', 'Microsoft YaHei', serif;
+            
+            --sword-color: rgba(180, 200, 220, 0.5);
+            --sword-glow: rgba(180, 200, 220, 0.2);
+        }
+
+        body {
+            margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at 50% 50%, #0d1015 0%, #020203 100%);
+            color: #d1c7b7; font-family: var(--font-main); user-select: none;
+        }
+
+        .bg-fx { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; overflow: hidden; z-index: -2; pointer-events: none;}
+        .blob { position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.4; animation: float-blob 20s infinite ease-in-out alternate; mix-blend-mode: screen; }
+        .blob-1 { width: 600px; height: 600px; background: #2a163d; top: -10%; left: 10%; animation-delay: 0s;}
+        .blob-2 { width: 500px; height: 500px; background: #152233; bottom: -10%; right: 10%; animation-delay: -5s;}
+        .blob-3 { width: 450px; height: 450px; background: #2b2011; top: 40%; left: 35%; animation-delay: -10s;}
+        @keyframes float-blob { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(60px, 30px) scale(1.1); } }
+        .scanlines { position: absolute; top:0; left:0; width:100%; height:100%; background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2)); background-size: 100% 4px; z-index: -1; pointer-events: none; opacity: 0.6; }
+        #flash-layer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #fff; opacity: 0; pointer-events: none; z-index: 9999; transition: opacity 0.5s ease-out; }
+
+        .top-left { position: absolute; top: 30px; left: 50px; z-index: 100; }
+        .tl-title { font-size: 22px; letter-spacing: 2px; color: #ccc; font-weight: 400; margin-bottom: 4px; cursor: pointer; user-select: none;}
+        .tl-title span { color: rgba(223,181,100,0.8); font-size: 14px; font-family: sans-serif; margin-left: 5px; font-weight: bold;}
+        .tl-sub { font-size: 12px; color: rgba(255,255,255,0.25); letter-spacing: 1.5px; font-family: sans-serif; margin-bottom: 15px;}
+        
+        .controls-group { display: flex; gap: 15px; align-items: center; }
+        .weapon-selector select { background: rgba(20, 24, 30, 0.8); border: 1px solid rgba(223,181,100,0.4); color: var(--gold-light); font-family: var(--font-main); padding: 5px 10px; border-radius: 4px; outline: none; cursor: pointer; font-size: 13px; transition: 0.3s; }
+        .weapon-selector select:hover { border-color: var(--gold-base); }
+        .weapon-selector select option { background: #111; color: #fff; }
+
+        .mode-toggle { display: flex; background: rgba(0,0,0,0.5); border-radius: 4px; border: 1px solid rgba(255,255,255,0.1); overflow: hidden;}
+        .mode-btn { padding: 5px 12px; font-size: 12px; color: #888; cursor: pointer; transition: 0.2s; font-family: sans-serif;}
+        .mode-btn.active { background: rgba(223,181,100,0.2); color: var(--gold-light); }
+
+        .weapon-name-ui { position: absolute; top: 120px; right: 50px; text-align: right; z-index: 100; }
+        .wn-title { font-size: 42px; color: #e6dfcc; letter-spacing: 4px; margin-bottom: 5px; font-weight: 400; text-shadow: 0 2px 10px rgba(0,0,0,0.8); transition: color 0.5s;}
+        .wn-id { font-size: 13px; color: #777; font-family: monospace; margin-bottom: 10px; }
+        .wn-score { font-size: 15px; color: #d1c7b7; font-weight: bold; }
+
+        .top-right { position: absolute; top: 40px; right: 50px; display: flex; gap: 30px; font-family: sans-serif; font-size: 16px; color: #ccc; z-index: 100; }
+        .currency { display: flex; align-items: center; gap: 8px; font-weight: bold; }
+
+        .bottom-left-keys { position: absolute; bottom: 40px; left: 50px; display: flex; gap: 20px; font-size: 13px; color: #888; z-index: 100; font-family: sans-serif;}
+        .bottom-right-keys { position: absolute; bottom: 40px; right: 380px; display: flex; gap: 20px; font-size: 13px; color: #888; z-index: 100; transition: right 0.4s; font-family: sans-serif;}
+        .scheme-panel.show ~ .bottom-right-keys { right: 380px; }
+        
+        .key-item { display: flex; align-items: center; gap: 8px; cursor: pointer; transition: color 0.2s; }
+        .key-item:hover { color: #fff; }
+        .key-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #ccc; padding: 2px 8px; border-radius: 2px; font-size: 12px; font-family: sans-serif;}
+        .key-btn.gold { background: rgba(223,181,100,0.15); border-color: var(--gold-base); color: var(--gold-light); }
+        .key-btn.purple { background: rgba(166,117,202,0.15); border-color: var(--purple-base); color: var(--purple-light); }
+
+        .center-scene { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 1400px; height: 900px; pointer-events: none; transition: left 0.4s; }
+        .global-arc-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; overflow: visible; filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));}
+        .track-arc { fill: none; stroke: rgba(219, 173, 88, 0.15); stroke-width: 1.5; stroke-dasharray: 4 6; transition: stroke 0.2s; }
+        .prog-arc { fill: none; stroke: rgba(255,255,255,0.9); stroke-width: 2; filter: drop-shadow(0 0 8px rgba(255,255,255,0.5)); transition: stroke-dashoffset 0.4s ease-out; }
+        
+        .sword-container { position: absolute; top: 50%; left: 50%; width: 1200px; height: 600px; transform: translate(-50%, -50%); z-index: 2; display: flex; justify-content: center; align-items: center; transition: all 0.5s ease; animation: floatWeapon 6s ease-in-out infinite alternate;}
+        .sword-flame { position: absolute; width: 90%; height: 350px; background: radial-gradient(ellipse, var(--sword-glow) 0%, transparent 70%); filter: blur(50px); z-index: 1; transition: background 0.8s ease, opacity 0.8s; opacity: 0; mix-blend-mode: screen;}
+        .sword-flame.active { opacity: 1; }
+        .real-sword-svg { width: 100%; height: 100%; overflow: visible; z-index: 5; filter: drop-shadow(0 20px 30px rgba(0,0,0,0.9)); }
+        
+        .weapon-group { display: none; }
+        .weapon-group.active { display: block; }
+        
+        .weapon-part { opacity: 0.4; filter: grayscale(80%) brightness(0.6); transition: all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); mix-blend-mode: normal; }
+        .weapon-part:not(.unlocked) .energy-glow, .weapon-part:not(.unlocked) .particle, .weapon-part:not(.unlocked) .spirit-pulse, .weapon-part:not(.unlocked) .pulse-light, .weapon-part:not(.unlocked) .spinning-light { opacity: 0 !important; display: none !important; animation: none !important; }
+        .weapon-part.unlocked { opacity: 1; filter: none; mix-blend-mode: screen; }
+        
+        .energy-glow { fill: var(--sword-color); filter: blur(8px); }
+        .energy-solid { fill: #fff; opacity: 0.95; }
+        .energy-line { stroke: var(--sword-color); stroke-width: 4; fill: none; filter: blur(2px); }
+        .energy-line-core { stroke: #fff; stroke-width: 2; fill: none; }
+        .energy-dash { stroke: #fff; fill: none; stroke-dasharray: 6 12; opacity: 0.8; }
+
+        @keyframes floatWeapon { 0% { transform: translate(-50%, -49%); } 100% { transform: translate(-50%, -51%); } }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes spinReverse { 100% { transform: rotate(-360deg); } }
+        @keyframes sway { 0% { transform: rotate(-3deg); } 100% { transform: rotate(3deg); } }
+        @keyframes swayReverse { 0% { transform: rotate(5deg); } 100% { transform: rotate(-8deg); } }
+        @keyframes spiritGlow { 0% { opacity: 0.7; filter: brightness(1.1) drop-shadow(0 0 10px var(--sword-color)); } 100% { opacity: 1; filter: brightness(1.4) drop-shadow(0 0 30px var(--sword-color)); } }
+        @keyframes floatUp { 0% { transform: translateY(0) scale(0.5); opacity: 0; } 30% { opacity: 0.8; scale: 1.2; } 80% { opacity: 0.5; } 100% { transform: translateY(-80px) scale(0.2); opacity: 0; } }
+        @keyframes spinLight { 0% { transform: rotate(0deg) scale(1); opacity: 0.6; } 50% { transform: rotate(180deg) scale(1.05); opacity: 0.9; } 100% { transform: rotate(360deg) scale(1); opacity: 0.6; } }
+        @keyframes floatSpirit1 { 0% { transform: translate(-10px, 10px) rotate(-3deg) scale(0.95); opacity: 0.7; } 100% { transform: translate(10px, -20px) rotate(3deg) scale(1.05); opacity: 1; } }
+        @keyframes floatSpirit2 { 0% { transform: translate(15px, 15px) rotate(2deg) scale(0.9); opacity: 0.6; } 100% { transform: translate(-15px, -15px) rotate(-4deg) scale(1.1); opacity: 1; } }
+        @keyframes pulseGlow { 0% { filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3)); opacity: 0.5; } 100% { filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.8)); opacity: 0.9; } }
+        @keyframes w-pulse { 0% { filter: drop-shadow(0 0 10px var(--sword-color));} 100% { filter: drop-shadow(0 0 35px var(--sword-color)) drop-shadow(0 0 10px #fff);} }
+        @keyframes w-bright { 0% { filter: brightness(1); } 100% { filter: brightness(1.3) drop-shadow(0 0 20px var(--sword-color)); } }
+        @keyframes w-core { 0% { filter: drop-shadow(0 0 10px #fff); transform: scale(0.98);} 100% { filter: drop-shadow(0 0 40px #fff) drop-shadow(0 0 15px var(--sword-color)); transform: scale(1.04);} }
+
+        .spin-slow { animation: spin 20s linear infinite; transform-origin: center; }
+        .spin-slow-reverse { animation: spinReverse 15s linear infinite; transform-origin: center; }
+        .sway-gentle { animation: sway 6s ease-in-out infinite alternate; transform-origin: center top; }
+        .tassel-sway { animation: sway 4s ease-in-out infinite alternate; transform-origin: top center; }
+        .tassel-sway-reverse { animation: swayReverse 5s ease-in-out infinite alternate; transform-origin: top center; }
+        .spirit-pulse { animation: spiritGlow 4s ease-in-out infinite alternate; }
+        .spinning-light { animation: spinLight 3s linear infinite; transform-origin: center; }
+        .spirit-bird-1 { animation: floatSpirit1 4s ease-in-out infinite alternate; transform-origin: center; }
+        .spirit-bird-2 { animation: floatSpirit2 5s ease-in-out infinite alternate-reverse; transform-origin: center; }
+        .pulse-light { animation: pulseGlow 2s ease-in-out infinite alternate; }
+
+        .particle { opacity: 0; }
+        .p1 { animation: floatUp 5s ease-in-out infinite; animation-delay: 0s; }
+        .p2 { animation: floatUp 6s ease-in-out infinite; animation-delay: 1.5s; }
+        .p3 { animation: floatUp 4s ease-in-out infinite; animation-delay: 3s; }
+        .p4 { animation: floatUp 7s ease-in-out infinite; animation-delay: 0.8s; }
+        .p5 { animation: floatUp 5s ease-in-out infinite; animation-delay: 2.5s; }
+
+        .weapon-part-blade.unlocked { animation: w-pulse 3.5s infinite alternate; }
+        .weapon-part-guard.unlocked { animation: w-bright 4s ease-in-out infinite alternate; }
+        .weapon-part-handle.unlocked { animation: w-bright 3s ease-in-out infinite alternate; }
+        .weapon-part-core.unlocked { animation: w-core 2.5s infinite alternate; transform-origin: center;}
+
+        .dim-state .sword-flame { opacity: 0 !important; }
+
+        /* 孔位节点 */
+        .slot { position: absolute; z-index: 10; display: flex; align-items: center; gap: 14px; pointer-events: auto; cursor: pointer; transition: transform 0.2s; }
+        .slot:hover { transform: scale(1.05); }
+        .slot.left-side { flex-direction: row; text-align: right; transform-origin: right center; }
+        .slot.right-side { flex-direction: row; text-align: left; transform-origin: left center; }
+        
+        .slot-info { display: flex; flex-direction: column; justify-content: center; gap: 3px; text-shadow: 0 2px 4px rgba(0,0,0,0.9); }
+        .slot.left-side .slot-info { align-items: flex-end; }
+        .slot.right-side .slot-info { align-items: flex-start; }
+
+        .slot-icon { position: relative; width: 24px; height: 24px; display: flex; justify-content: center; align-items: center; z-index: 2; flex-shrink: 0;}
+        .diamond { width: 100%; height: 100%; transform: rotate(45deg); background: linear-gradient(135deg, rgba(40,40,40,0.9) 0%, rgba(10,10,10,0.95) 100%); border: 1px solid rgba(255,255,255,0.2); position: relative; transition: all 0.3s; box-shadow: 2px 2px 10px rgba(0,0,0,0.9), inset 0 0 8px rgba(0,0,0,0.8); overflow: hidden; z-index: 2; }
+        .diamond::before { content: ''; position: absolute; top: 0; left: 0; width: 150%; height: 50%; background: linear-gradient(180deg, rgba(255,255,255,0.25) 0%, transparent 100%); transform: rotate(-45deg) translateY(-20%); pointer-events: none; }
+        .diamond::after { content: ''; position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); width: 8px; height: 8px; background: currentColor; box-shadow: 0 0 8px currentColor, 0 0 16px currentColor; transition: all 0.3s; border-radius: 1px; }
+        
+        .slot-type { font-size: 13px; color: #999; display: flex; align-items: center; gap: 6px; letter-spacing: 1px; font-weight: 300;}
+        .slot.left-side .slot-type { justify-content: flex-end; }
+        .slot.right-side .slot-type { justify-content: flex-start; }
+        .slot-name { font-size: 18px; font-weight: 500; margin-top: 2px; letter-spacing: 2px; color: #eee; display: flex; align-items: center; gap: 6px; transition: color 0.3s;}
+        .slot-extra { font-size: 13px; color: #ccc; opacity: 0.9; margin-top: 4px; font-weight: 400; letter-spacing: 0.5px; font-family: sans-serif; text-shadow: 0 1px 3px rgba(0,0,0,0.9);}
+
+        .rank-none .diamond { border-color: #333; color: #222; }
+        .rank-none .slot-name { color: #666; font-style: italic; font-size: 16px; font-weight: normal;}
+        .rank-gold .diamond { border-color: #fef0b9; background: linear-gradient(135deg, rgba(223,181,100,0.5) 0%, rgba(40,20,0,0.95) 100%); box-shadow: 0 0 25px rgba(219, 173, 88, 0.4), inset 0 0 15px rgba(219, 173, 88, 0.5); color: #fff; }
+        .rank-gold .diamond::after { box-shadow: 0 0 10px #fff, 0 0 20px var(--gold-base); }
+        .rank-gold .slot-name { color: var(--gold-light); text-shadow: 0 0 10px rgba(223,181,100,0.5); }
+        .rank-purple .diamond { border-color: #e4cfff; background: linear-gradient(135deg, rgba(166,117,202,0.5) 0%, rgba(20,0,40,0.95) 100%); box-shadow: 0 0 20px rgba(154, 107, 180, 0.4), inset 0 0 15px rgba(154, 107, 180, 0.5); color: #fff; }
+        .rank-purple .diamond::after { box-shadow: 0 0 10px #fff, 0 0 20px var(--purple-base); }
+        .rank-purple .slot-name { color: var(--purple-light); }
+        .rank-blue .diamond { border-color: #bdf0ff; background: linear-gradient(135deg, rgba(109,174,204,0.5) 0%, rgba(0,20,40,0.95) 100%); box-shadow: 0 0 15px rgba(96, 156, 181, 0.4), inset 0 0 15px rgba(96, 156, 181, 0.5); color: #fff; }
+        .rank-blue .diamond::after { box-shadow: 0 0 10px #fff, 0 0 15px var(--blue-base); }
+        .rank-blue .slot-name { color: var(--blue-light); }
+
+        .svg-lock { width: 14px; height: 14px; transition: all 0.3s; }
+        .rank-none .svg-lock { display: none; }
+        .svg-lock path.lock-shackle { stroke: #666; stroke-dasharray: 20; stroke-dashoffset: 0; transition: all 0.3s;}
+        .svg-lock rect.lock-body { fill: transparent; stroke: #666; transition: all 0.3s;}
+        .is-locked .diamond { opacity: 0.3; }
+        .is-locked .slot-name { color: #555 !important; text-shadow: none !important; }
+        .is-locked .slot-type { color: #666 !important; }
+        .is-locked .svg-lock path.lock-shackle { stroke: var(--gold-base); }
+        .is-locked .svg-lock rect.lock-body { fill: var(--gold-base); stroke: var(--gold-base); }
+
+        @keyframes reforge-pulse { 0% { transform: rotate(45deg) scale(1); filter: brightness(1); } 40% { transform: rotate(45deg) scale(1.35); box-shadow: 0 0 40px #fff, inset 0 0 30px #fff; border-color: #fff; filter: brightness(1.8); } 100% { transform: rotate(45deg) scale(1); filter: brightness(1); } }
+        .anim-reforge .diamond { animation: reforge-pulse 0.4s ease-out; }
+
+        .particle-wrapper { position: absolute; top: 50%; left: 50%; width: 0; height: 0; z-index: 1; pointer-events: none; overflow: visible; }
+        .particle-flare { position: absolute; top: 50%; left: 50%; border-radius: 50%; background: currentColor; box-shadow: 0 0 25px currentColor, 0 0 50px currentColor; mix-blend-mode: screen; transform: translate(-50%, -50%) scale(0); animation: flare-anim 0.3s ease-out forwards; }
+        @keyframes flare-anim { 0% { transform: translate(-50%, -50%) scale(0); opacity: 1; } 40% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(2); opacity: 0; } }
+        .particle-spark { position: absolute; top: 0; left: 0; border-radius: 50%; background: currentColor; mix-blend-mode: screen; transform: translate(-50%, -50%); animation: spark-anim var(--dur) cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+        @keyframes spark-anim { 0% { transform: translate(-50%, -50%) scale(1); opacity: 1; } 80% { opacity: 1; } 100% { transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0); opacity: 0; } }
+
+        #slot-0 { right: 1120px; top: 163px; } 
+        #slot-1 { right: 1220px; top: 403px; } 
+        #slot-2 { right: 1120px; top: 683px; } 
+        #slot-3 { left: 823px; top: 113px; } 
+        #slot-4 { left: 1023px; top: 423px;} 
+
+        .bottom-center { position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 15px; pointer-events: auto; z-index: 20; transition: left 0.4s;}
+        .btn-reforge { display: flex; align-items: center; background: rgba(220,220,220,0.95); padding: 8px 45px 8px 15px; cursor: pointer; transition: 0.1s; border-radius: 2px; box-shadow: 0 0 20px rgba(0,0,0,0.8), 0 0 10px rgba(255,255,255,0.1) inset;}
+        .btn-reforge:active { background: rgba(200,200,200,0.9); transform: translateY(2px); box-shadow: 0 0 5px rgba(0,0,0,0.8);}
+        .btn-key { background: #222; color: #fff; padding: 3px 8px; font-family: monospace; font-size: 13px; margin-right: 15px; border-radius: 2px; border: 1px solid #555;}
+        .btn-text { font-size: 20px; color: #111; letter-spacing: 3px; font-weight: bold;}
+        .btn-cost { margin-left: 35px; display: flex; align-items: center; gap: 5px; font-size: 18px; color: #8e58a8; font-weight: bold;}
+
+        .mini-diamonds { display: flex; gap: 8px; margin-bottom: 5px; align-items: center; justify-content: center;}
+        .mini-diamond { width: 10px; height: 10px; transform: rotate(45deg); border: 1px solid rgba(255,255,255,0.2); background: linear-gradient(135deg, rgba(60,60,60,0.9) 0%, rgba(0,0,0,0.9) 100%); position: relative; transition: all 0.3s; }
+        .mini-diamond::after { content: ''; position: absolute; top: 1px; left: 1px; right: 1px; bottom: 1px; background: currentColor; box-shadow: 0 0 5px currentColor; border-radius: 1px;}
+
+        .side-panel { position: absolute; top: 0; width: 360px; height: 100vh; background: rgba(10,12,16,0.98); box-shadow: 0 0 50px rgba(0,0,0,0.9); backdrop-filter: blur(15px); padding: 40px 30px 40px 25px; box-sizing: border-box; z-index: 500; display: flex; flex-direction: column; transition: 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); pointer-events: auto; }
+        .scheme-panel { right: -380px; border-left: 1px solid rgba(255,255,255,0.05); }
+        .scheme-panel.show { right: 0; }
+        .scheme-panel.show ~ .center-scene { left: calc(50% - 180px); }
+        .collection-panel { left: -380px; border-right: 1px solid rgba(255,255,255,0.05); }
+        .collection-panel.show { left: 0; }
+        .collection-panel.show ~ .center-scene { left: calc(50% + 180px); }
+        .sp-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 10px; }
+        .sp-title { font-size: 20px; color: #d1c7b7; letter-spacing: 2px;}
+        .btn-close-panel { font-size: 13px; color: #888; cursor: pointer; transition: 0.2s; font-family: sans-serif;}
+        .btn-close-panel:hover { color: #fff; }
+        .sp-desc { font-size: 12px; color: #888; line-height: 1.6; margin-bottom: 20px; font-family: sans-serif;}
+        .list-container { flex-grow: 1; overflow-y: auto; padding-right: 5px;}
+        .list-container::-webkit-scrollbar { width: 4px; }
+        .list-container::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+        .list-item { position: relative; padding: 12px 15px; margin-bottom: 10px; cursor: pointer; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02); transition: 0.2s; border-radius: 2px;}
+        .list-item:hover { background: rgba(255,255,255,0.05); }
+        .list-item.active { border-color: #dfb564; background: rgba(223,181,100,0.08); }
+        .si-title { font-size: 13px; color: #ddd; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; letter-spacing: 1px;}
+        .si-tag { font-size: 12px; color: #dfb564; border: 1px solid #dfb564; padding: 0px 4px; display: none; border-radius: 2px;}
+        .list-item.active .si-tag { display: inline-block; }
+        .si-content { display: flex; justify-content: space-between; align-items: center; }
+        .si-score { font-size: 14px; color: #dfb564; font-weight: bold;}
+        .sp-actions { display: flex; gap: 10px; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);}
+        .sp-btn { flex: 1; padding: 10px 0; border: none; border-radius: 2px; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.15s; letter-spacing: 2px;}
+        .sp-btn.cancel { background: rgba(255,255,255,0.1); color: #ccc; }
+        .sp-btn.cancel:hover { background: rgba(255,255,255,0.2); color: #fff;}
+        .sp-btn.confirm { background: rgba(223,181,100,0.8); color: #111; }
+        .sp-btn.confirm:hover { background: rgba(223,181,100,1); }
+        .col-item { padding: 15px; margin-bottom: 15px; border: 1px solid rgba(223,181,100,0.3); background: rgba(20,20,20,0.6); border-radius: 2px; position: relative;}
+        .col-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;}
+        .col-title { font-size: 15px; color: #fef0b9; letter-spacing: 1px; font-weight: bold;}
+        .col-score { font-size: 14px; color: #dfb564; font-family: monospace; font-weight: bold;}
+        .col-slots { font-size: 12px; line-height: 1.8; color: #ccc; margin-bottom: 8px; font-family: sans-serif;}
+        .col-slots span { margin-right: 8px; display: inline-block;}
+        .col-date { font-size: 11px; color: #666; text-align: right; margin-top: 10px; font-family: sans-serif;}
+        .col-del { position: absolute; bottom: 12px; left: 15px; font-size: 12px; color: #888; cursor: pointer; transition: 0.2s;}
+        .col-del:hover { color: #ff4040;}
+
+        #breakthrough-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(5,6,8,0.95); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 99999; backdrop-filter: blur(12px); pointer-events: auto; cursor: pointer; }
+        .bt-diamonds-row { display: flex; gap: 20px; align-items: center; margin-bottom: 25px; }
+        .bt-diamond { width: 26px; height: 26px; transform: rotate(45deg); border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); position: relative; transition: all 0.3s; box-shadow: 0 0 10px rgba(0,0,0,0.5) inset; }
+        .bt-diamond.unlocked { border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.05); }
+        .bt-diamond.unlocked::before { content: ''; position: absolute; top: 2px; left: 2px; right: 2px; bottom: 2px; background: currentColor; opacity: 0.8; clip-path: polygon(50% 0%, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0% 50%, 40% 40%); box-shadow: 0 0 15px currentColor; }
+        .bt-diamond.pulse { animation: bt-pulse 1.5s infinite alternate; border-color: #fff; }
+        .bt-title { font-size: 36px; color: #fff; letter-spacing: 12px; font-weight: 300; margin-bottom: 12px; text-shadow: 0 0 20px rgba(255,255,255,0.5); margin-left: 12px;}
+        .bt-sub { font-size: 15px; color: #aaa; letter-spacing: 4px; font-weight: 300; margin-bottom: 50px;}
+        .bt-prompt { display: flex; align-items: center; gap: 8px; color: #777; font-size: 13px; font-family: sans-serif; animation: blink 2s infinite;}
+        
+        @keyframes bt-pulse { 0% { transform: rotate(45deg) scale(1); filter: brightness(1); } 100% { transform: rotate(45deg) scale(1.2); filter: brightness(1.5); } }
+        @keyframes blink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+        .toast { position: absolute; top: 20%; left: 50%; transform: translate(-50%, -50%); font-size: 15px; color: #fff; background: rgba(0,0,0,0.8); padding: 10px 25px; border-radius: 4px; opacity: 0; pointer-events: none; transition: 0.3s; z-index: 10000; letter-spacing: 1px;}
+        .multi-gold-toast { position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%) scale(0.5); font-size: 40px; color: #fff; letter-spacing: 6px; text-shadow: 0 0 20px var(--gold-base); pointer-events: none; opacity: 0; z-index: 10000; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+        #modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 10000; backdrop-filter: blur(5px);}
+        .modal-box { background: rgba(20,22,26,0.95); border: 1px solid var(--gold-base); padding: 30px 40px; border-radius: 2px; text-align: center; box-shadow: 0 0 30px rgba(0,0,0,0.8); max-width: 400px; width: 90%; }
+        .modal-title { color: #fff; font-size: 16px; line-height: 1.6; margin-bottom: 25px; letter-spacing: 1px;}
+        .modal-btns { display: flex; gap: 20px; justify-content: center; }
+        
+        /* 输入框样式 */
+        #modal-input {
+            width: 100%; box-sizing: border-box; padding: 10px 15px; margin-bottom: 25px;
+            background: rgba(0,0,0,0.5); border: 1px solid var(--gold-base); color: var(--gold-light);
+            font-size: 16px; outline: none; text-align: center; border-radius: 2px; font-family: inherit;
+        }
+        #modal-input:focus { border-color: #fff; box-shadow: 0 0 10px rgba(223,181,100,0.5); }
+
+        .dev-panel { position: absolute; left: 50px; bottom: 80px; background: rgba(15,18,24,0.8); border: 1px solid #333; padding: 20px; width: 220px; display: block; font-family: sans-serif; pointer-events: auto; z-index: 1000; border-radius: 2px; box-shadow: 0 0 20px rgba(0,0,0,0.5); backdrop-filter: blur(5px);}
+        .dev-title { color: #aaa; font-size: 12px; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 8px; letter-spacing: 1px; }
+        .dev-line { display: flex; justify-content: space-between; font-size: 13px; color: #ccc; margin-bottom: 10px; }
+        .dev-line span:last-child { font-family: monospace; color: #fff; font-size: 14px;}
+
+        #recharge-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 100000; backdrop-filter: blur(10px);}
+        .rc-box { background: rgba(15,18,22,0.95); border: 1px solid var(--gold-base); padding: 40px; border-radius: 4px; text-align: center; box-shadow: 0 0 50px rgba(0,0,0,0.9); width: 600px; }
+        .rc-title { font-size: 24px; color: var(--gold-light); letter-spacing: 4px; margin-bottom: 30px; font-weight: bold;}
+        .rc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px;}
+        .rc-item { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 20px 10px; border-radius: 4px; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; gap: 10px;}
+        .rc-item:hover { background: rgba(223,181,100,0.15); border-color: var(--gold-base); transform: translateY(-3px);}
+        .rc-item span:first-child { font-size: 18px; color: #fff; font-weight: bold;}
+        .rc-item .rc-price { font-size: 14px; color: #dfb564; font-family: sans-serif;}
+        .rc-close { background: transparent; border: 1px solid #666; color: #aaa; padding: 8px 30px; cursor: pointer; transition: 0.2s; border-radius: 2px; font-size: 14px;}
+        .rc-close:hover { background: #333; color: #fff;}
+    </style>
+</head>
+<body>
+
+    <div class="bg-fx">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+    <div class="scanlines"></div>
+
+    <div id="audio-system" style="display:none;">
+        <audio id="audio-chongzhu" src="重铸.mp3" preload="auto"></audio> 
+        <audio id="audio-chujin" src="出金.mp3" preload="auto"></audio> 
+        <audio id="audio-lvge" src="律格.mp3" preload="auto"></audio> 
+    </div>
+
+    <div id="flash-layer"></div>
+    <div class="multi-gold-toast" id="multi-gold-toast">双金现世！</div>
+
+    <div id="breakthrough-overlay" onclick="closeBreakthrough()">
+        <div class="bt-diamonds-row" id="bt-diamonds-row"></div>
+        <div class="bt-title">律格突破</div>
+        <div class="bt-sub" id="bt-sub-text">藏音·龙跃霄汉·剑刃</div>
+        <div class="bt-prompt"><span class="key-btn">Space</span> 继续</div>
+    </div>
+
+    <div class="top-left">
+        <div class="tl-title" ondblclick="hardResetAccount()">武器重铸模拟器 <span>ver2.9 最终典藏</span></div>
+        <div class="tl-sub">蛋师傅铁匠铺学徒专用 by伽号</div>
+        <div class="controls-group">
+            <div class="weapon-selector">
+                <select id="weapon-type-select" onchange="onWeaponChange()">
+                    <option value="剑">武器类型：剑</option>
+                    <option value="枪">武器类型：枪</option>
+                    <option value="二代伞">武器类型：二代伞</option>
+                    <option value="二代扇">武器类型：二代扇</option>
+                    <option value="唐刀">武器类型：唐刀</option>
+                    <option value="陌刀">武器类型：陌刀</option>
+                    <option value="拳甲">武器类型：拳甲</option>
+                    <option value="弓">武器类型：弓</option>
+                </select>
+            </div>
+            <div class="mode-toggle">
+                <div class="mode-btn active" id="btn-practice" onclick="setMode('practice')">透视练习</div>
+                <div class="mode-btn" id="btn-real" onclick="setMode('real')">沉浸真实</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="weapon-name-ui">
+        <div class="wn-title" id="ui-wn-title">藏音·龙跃霄汉</div>
+        <div class="wn-id">风华：<span id="ui-total-score">2120</span></div>
+    </div>
+
+    <div class="top-right" id="top-right-ui" style="display: none;">
+        <div class="currency" style="color: #bdf0ff;">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                <polygon points="12,2 22,12 12,22 2,12"/>
+            </svg> 
+            玄石：<span id="ui-balance">0</span>
+        </div>
+    </div>
+
+    <div class="center-scene" id="center-scene">
+        <svg class="global-arc-svg" id="arc-container" viewBox="0 0 1400 900">
+            <path id="bg-arc-1" class="track-arc" d="M 268 695 A 450 450 0 0 1 168 415" />
+            <path id="prog-arc-1" class="prog-arc" d="M 268 695 A 450 450 0 0 1 168 415" />
+            <path id="bg-arc-2" class="track-arc" d="M 168 415 A 450 450 0 0 1 268 175" />
+            <path id="prog-arc-2" class="prog-arc" d="M 168 415 A 450 450 0 0 1 268 175" />
+            <path id="bg-arc-3" class="track-arc" d="M 268 175 A 450 450 0 0 1 835 125" />
+            <path id="prog-arc-3" class="prog-arc" d="M 268 175 A 450 450 0 0 1 835 125" />
+            <path id="bg-arc-4" class="track-arc" d="M 835 125 A 450 450 0 0 1 1035 435" />
+            <path id="prog-arc-4" class="prog-arc" d="M 835 125 A 450 450 0 0 1 1035 435" />
+        </svg>
+        
+        <div class="sword-container dim-state" id="sword-obj">
+            <div class="sword-flame" id="sword-flame"></div>
+            
+            <svg class="real-sword-svg" id="real-sword-svg" viewBox="0 0 1200 500" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="metal-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stop-color="#555"/><stop offset="45%" stop-color="#999"/>
+                        <stop offset="50%" stop-color="#fff"/><stop offset="55%" stop-color="#333"/><stop offset="100%" stop-color="#111"/>
+                    </linearGradient>
+                    <linearGradient id="gold-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#8a6c42"/><stop offset="50%" stop-color="#e8c764"/><stop offset="100%" stop-color="#3a2b18"/>
+                    </linearGradient>
+
+                    <linearGradient id="celestialGold" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#FFFFFF" />
+                        <stop offset="25%" stop-color="#FDF1B6" />
+                        <stop offset="50%" stop-color="#DEB853" />
+                        <stop offset="80%" stop-color="#FCE182" />
+                        <stop offset="100%" stop-color="#FFFFFF" />
+                    </linearGradient>
+                    <radialGradient id="glassJade" cx="30%" cy="30%" r="70%">
+                        <stop offset="0%" stop-color="#FFFFFF" />
+                        <stop offset="30%" stop-color="var(--sword-color)" />
+                        <stop offset="70%" stop-color="var(--sword-color)" />
+                        <stop offset="100%" stop-color="var(--sword-glow)" />
+                    </radialGradient>
+                    <radialGradient id="fairySilk" cx="50%" cy="100%" r="100%">
+                        <stop offset="0%" stop-color="#FFFFFF" />
+                        <stop offset="40%" stop-color="var(--sword-glow)" />
+                        <stop offset="70%" stop-color="var(--sword-glow)" />
+                        <stop offset="100%" stop-color="var(--sword-color)" />
+                    </radialGradient>
+                    <filter id="bloomGlow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="3" result="blur1" />
+                        <feGaussianBlur stdDeviation="10" result="blur2" />
+                        <feGaussianBlur stdDeviation="25" result="blur3" />
+                        <feMerge><feMergeNode in="blur3" /><feMergeNode in="blur2" /><feMergeNode in="blur1" /><feMergeNode in="SourceGraphic" /></feMerge>
+                    </filter>
+                    <g id="fairy-feather">
+                        <path d="M 0 0 C 22 -20, 25 -45, 0 -68 C -25 -45, -22 -20, 0 0 Z" fill="url(#celestialGold)"/>
+                        <path d="M 0 -8 C 14 -22, 16 -38, 0 -56 C -16 -38, -14 -22, 0 -8 Z" fill="url(#glassJade)" />
+                        <circle cx="0" cy="-42" r="5" fill="#FFFFFF" opacity="0.6" filter="url(#bloomGlow)" />
+                        <path d="M 0 -56 L 0 -80" stroke="#FFFFFF" stroke-width="2" opacity="0.5" filter="url(#bloomGlow)" />
+                    </g>
+
+                    <linearGradient id="bow-jade" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#A3FFDF" />
+                        <stop offset="30%" stop-color="#19C49A" />
+                        <stop offset="70%" stop-color="#0E785F" />
+                        <stop offset="100%" stop-color="#074032" />
+                    </linearGradient>
+                    <linearGradient id="bow-silverFeather" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#FFFFFF" />
+                        <stop offset="40%" stop-color="#D0D5DF" />
+                        <stop offset="70%" stop-color="#8E99AA" />
+                        <stop offset="100%" stop-color="#E1E6ED" />
+                    </linearGradient>
+                    <linearGradient id="bow-gold" x1="0%" y1="100%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#9C7741" />
+                        <stop offset="50%" stop-color="#FCE182" />
+                        <stop offset="100%" stop-color="#FFF8D6" />
+                    </linearGradient>
+                    <filter id="bow-shadow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feDropShadow dx="2" dy="5" stdDeviation="4" flood-color="#000" flood-opacity="0.5" />
+                    </filter>
+                    <filter id="bow-glow">
+                        <feGaussianBlur stdDeviation="4" result="blur" />
+                        <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                    </filter>
+
+                    <radialGradient id="fist-snowFeather" cx="40%" cy="40%" r="60%">
+                        <stop offset="0%" stop-color="#FFFFFF" />
+                        <stop offset="60%" stop-color="#F0F2F5" />
+                        <stop offset="100%" stop-color="#D1D6E0" />
+                    </radialGradient>
+                    <linearGradient id="fist-magicBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="var(--sword-color)" />
+                        <stop offset="50%" stop-color="var(--sword-glow)" />
+                        <stop offset="100%" stop-color="var(--sword-glow)" />
+                    </linearGradient>
+                    <linearGradient id="fist-darkArmor" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stop-color="#4B5162" />
+                        <stop offset="50%" stop-color="#1B1E26" />
+                        <stop offset="100%" stop-color="#0F1115" />
+                    </linearGradient>
+                    <linearGradient id="fist-silverLine" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#E2E8F0" />
+                        <stop offset="50%" stop-color="#94A3B8" />
+                        <stop offset="100%" stop-color="#F8FAFC" />
+                    </linearGradient>
+                    <filter id="fist-featherShadow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#000" flood-opacity="0.3" />
+                    </filter>
+                    <filter id="fist-spiritGlow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="6" result="blur1" />
+                        <feGaussianBlur stdDeviation="15" result="blur2" />
+                        <feMerge><feMergeNode in="blur2" /><feMergeNode in="blur1" /><feMergeNode in="SourceGraphic" /></feMerge>
+                    </filter>
+                    <filter id="fist-lightGlow">
+                        <feGaussianBlur stdDeviation="3" result="blur" />
+                        <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                    </filter>
+
+                    <radialGradient id="umb-paperBase" cx="40%" cy="40%" r="70%">
+                        <stop offset="0%" stop-color="#FFFFFF" />
+                        <stop offset="60%" stop-color="#FDF8E7" />
+                        <stop offset="100%" stop-color="#E8DAB7" />
+                    </radialGradient>
+                    <linearGradient id="umb-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#FFF2B2" />
+                        <stop offset="30%" stop-color="#D4AF37" />
+                        <stop offset="60%" stop-color="#8B6508" />
+                        <stop offset="85%" stop-color="#E5C158" />
+                        <stop offset="100%" stop-color="#FFF8D6" />
+                    </linearGradient>
+                    <linearGradient id="umb-jade" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#55FFB2" />
+                        <stop offset="50%" stop-color="#00A859" />
+                        <stop offset="100%" stop-color="#004D28" />
+                    </linearGradient>
+                    <linearGradient id="umb-paintOrange" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#FF9933" />
+                        <stop offset="50%" stop-color="#FF5500" />
+                        <stop offset="100%" stop-color="#CC2200" />
+                    </linearGradient>
+                    <linearGradient id="umb-paintCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#33CCFF" />
+                        <stop offset="50%" stop-color="#0088FF" />
+                        <stop offset="100%" stop-color="#0044CC" />
+                    </linearGradient>
+                    <linearGradient id="umb-paintGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#88FF99" />
+                        <stop offset="100%" stop-color="#33B255" />
+                    </linearGradient>
+                    <filter id="umb-glow">
+                        <feGaussianBlur stdDeviation="4" result="blur" />
+                        <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                    </filter>
+                    <filter id="umb-heavyBloom" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="8" result="blur1" />
+                        <feGaussianBlur stdDeviation="20" result="blur2" />
+                        <feMerge><feMergeNode in="blur2" /><feMergeNode in="blur1" /><feMergeNode in="SourceGraphic" /></feMerge>
+                    </filter>
+                    <filter id="umb-dropShadow">
+                        <feDropShadow dx="2" dy="5" stdDeviation="4" flood-color="#000" flood-opacity="0.6" />
+                    </filter>
+                    <g id="umb-spike">
+                        <path d="M -3 -30 L 3 -30 L 0 -70 Z" fill="url(#umb-gold)" />
+                        <path d="M 0 -30 L 3 -30 L 0 -70 Z" fill="#FFF" opacity="0.6" />
+                        <path d="M -6 -10 L 6 -10 L 3 -30 L -3 -30 Z" fill="url(#umb-jade)" />
+                        <path d="M 0 -10 L 6 -10 L 3 -30 L 0 -30 Z" fill="#FFF" opacity="0.4" />
+                        <circle cx="0" cy="-10" r="6" fill="#FFFFFF" opacity="0.6" filter="url(#umb-glow)"/>
+                        <circle cx="2" cy="-12" r="2" fill="#FFFFFF" />
+                    </g>
+                    <clipPath id="umb-canopy-clip">
+                        <ellipse cx="0" cy="0" rx="380" ry="240" />
+                    </clipPath>
+                </defs>
+
+                <!-- 0. 剑 -->
+                <g class="weapon-group active" id="wp-剑" transform="translate(0, 50)">
+                    <g class="base-weapon">
+                        <path d="M 50,200 L 780,188 L 780,212 Z" class="energy-solid" />
+                        <path d="M 770,180 L 800,165 L 810,195 L 810,205 L 800,235 L 770,220 Z" class="energy-solid" />
+                    </g>
+                    <g class="weapon-part weapon-part-blade">
+                        <path class="energy-glow" d="M 20,200 L 780,170 L 780,230 Z" />
+                        <path class="energy-solid" d="M 40,200 L 780,185 L 780,215 Z" />
+                        <path class="energy-line" d="M 150,200 L 770,200" />
+                        <path class="energy-line-core" d="M 150,200 L 770,200" stroke-dasharray="50 150"><animate attributeName="stroke-dashoffset" values="200;0" dur="2s" repeatCount="indefinite"/></path>
+                    </g>
+                    <g class="weapon-part weapon-part-guard">
+                        <path class="energy-solid" d="M 760,150 L 790,80 L 830,120 Z" />
+                        <path class="energy-glow" d="M 740,140 L 790,50 L 850,110 Z" />
+                        <path class="energy-solid" d="M 760,250 L 790,320 L 830,280 Z" />
+                        <path class="energy-glow" d="M 740,260 L 790,350 L 850,290 Z" />
+                        <path class="energy-line" d="M 750,80 Q 700,200 750,320" />
+                    </g>
+                    <g class="weapon-part weapon-part-handle">
+                        <path class="energy-glow" d="M 940,200 Q 1000,180 1150,210 Q 1020,220 940,200 Z" />
+                        <path class="energy-glow" d="M 940,200 Q 980,250 1080,240 Q 1000,220 940,200 Z" />
+                        <path class="energy-line-core" d="M 940,200 Q 1000,180 1150,210 M 940,200 Q 980,250 1080,240" />
+                    </g>
+                    <g class="weapon-part weapon-part-core">
+                        <circle cx="800" cy="200" r="40" class="energy-glow" />
+                        <polygon points="800,170 806,194 830,200 806,206 800,230 794,206 770,200 794,194" class="energy-solid" />
+                        <circle cx="800" cy="200" r="60" class="energy-line" stroke-dasharray="10 20"/>
+                    </g>
+                </g>
+
+                <!-- 1. 枪 -->
+                <g class="weapon-group" id="wp-枪" transform="translate(0, 50)">
+                    <g class="base-weapon">
+                        <path d="M 100,200 L 350,185 L 350,215 Z" class="energy-solid" />
+                        <rect x="360" y="195" width="700" height="10" class="energy-solid" />
+                    </g>
+                    <g class="weapon-part weapon-part-blade">
+                        <path class="energy-glow" d="M 50,200 L 350,170 L 350,230 Z" />
+                        <path class="energy-solid" d="M 80,200 L 350,185 L 350,215 Z" />
+                        <path class="energy-line" d="M 300,150 L 350,150 L 350,250 L 300,250" />
+                    </g>
+                    <g class="weapon-part weapon-part-guard">
+                        <rect x="350" y="195" width="600" height="10" class="energy-solid" />
+                        <rect x="350" y="190" width="600" height="20" class="energy-glow" />
+                    </g>
+                    <g class="weapon-part weapon-part-handle">
+                        <path class="energy-solid" d="M 950,190 L 1050,200 L 950,210 Z" />
+                        <path class="energy-glow" d="M 940,180 L 1080,200 L 940,220 Z" />
+                    </g>
+                    <g class="weapon-part weapon-part-core">
+                        <circle cx="360" cy="200" r="35" class="energy-glow" />
+                        <path class="energy-solid" d="M 360,200 Q 320,160 380,140 Q 340,180 360,200" />
+                        <path class="energy-solid" d="M 360,200 Q 320,240 380,260 Q 340,220 360,200" />
+                    </g>
+                </g>
+
+                <!-- 2. 二代伞 -->
+                <g class="weapon-group" id="wp-二代伞" transform="translate(600, 250) scale(0.48)">
+                    <g class="base-weapon">
+                        <path d="M 0 0 L -180 250" class="energy-solid" fill="none" stroke-width="6"/>
+                        <ellipse cx="0" cy="0" rx="380" ry="240" fill="none" class="energy-solid" stroke-width="2"/>
+                        <path d="M -5 5 L 15 -15 L 20 -40 L 5 -5 Z" fill="none" class="energy-solid"/>
+                    </g>
+                    
+                    <g class="weapon-part weapon-part-guard">
+                        <g transform="rotate(-20)" filter="url(#umb-dropShadow)">
+                            <ellipse cx="0" cy="0" rx="380" ry="240" fill="none" stroke="url(#umb-gold)" stroke-width="6" />
+                            <ellipse cx="0" cy="0" rx="378" ry="238" fill="none" stroke="#FFFFFF" stroke-width="2" opacity="0.7"/>
+                            
+                            <g transform="translate(380, 0) rotate(90)"><use href="#umb-spike"/></g>
+                            <g transform="translate(350, 92) rotate(105)"><use href="#umb-spike"/></g>
+                            <g transform="translate(268, 170) rotate(125)"><use href="#umb-spike"/></g>
+                            <g transform="translate(145, 222) rotate(150)"><use href="#umb-spike"/></g>
+                            <g transform="translate(0, 240) rotate(180)"><use href="#umb-spike"/></g>
+                            <g transform="translate(-145, 222) rotate(210)"><use href="#umb-spike"/></g>
+                            <g transform="translate(-268, 170) rotate(235)"><use href="#umb-spike"/></g>
+                            <g transform="translate(-350, 92) rotate(255)"><use href="#umb-spike"/></g>
+                            <g transform="translate(-380, 0) rotate(270)"><use href="#umb-spike"/></g>
+                            <g transform="translate(-350, -92) rotate(285)"><use href="#umb-spike"/></g>
+                            <g transform="translate(-268, -170) rotate(305)"><use href="#umb-spike"/></g>
+                            <g transform="translate(-145, -222) rotate(330)"><use href="#umb-spike"/></g>
+                            <g transform="translate(0, -240) rotate(0)"><use href="#umb-spike"/></g>
+                            <g transform="translate(145, -222) rotate(30)"><use href="#umb-spike"/></g>
+                            <g transform="translate(268, -170) rotate(55)"><use href="#umb-spike"/></g>
+                            <g transform="translate(350, -92) rotate(75)"><use href="#umb-spike"/></g>
+                        </g>
+                        <g class="tassel-sway-reverse" transform="translate(280, 150)">
+                            <path d="M 0 0 C 40 100, 20 250, 60 350 C -10 250, 10 100, 0 0 Z" fill="url(#umb-gold)" filter="url(#umb-dropShadow)"/>
+                            <path d="M 5 20 C 35 110, 15 240, 50 330" fill="none" stroke="#D4AF37" stroke-width="4" opacity="0.5"/>
+                            <path d="M 15 150 C 30 170, 10 190, 20 210" fill="none" stroke="#8B6508" stroke-width="2" opacity="0.6"/>
+                            <path d="M 25 250 C 40 270, 20 290, 30 310" fill="none" stroke="#8B6508" stroke-width="2" opacity="0.6"/>
+                        </g>
+                    </g>
+
+                    <g class="weapon-part weapon-part-blade">
+                        <g transform="rotate(-20)" filter="url(#umb-dropShadow)">
+                            <ellipse cx="0" cy="0" rx="380" ry="240" fill="url(#umb-paperBase)" />
+                            <g clip-path="url(#umb-canopy-clip)">
+                                <path d="M 100 0 C 150 -100, 250 -150, 350 -50 C 300 50, 200 100, 100 0 Z" fill="url(#umb-paintGreen)" opacity="0.8"/>
+                                <path d="M 120 20 C 180 -50, 260 -80, 320 -20" fill="none" stroke="url(#umb-gold)" stroke-width="2" />
+                                <path d="M -100 -50 C -50 -200, -250 -250, -350 -100 C -250 0, -150 50, -100 -50 Z" fill="url(#umb-paintOrange)" />
+                                <path d="M -200 -50 C -100 -150, -300 -200, -380 -50" fill="none" stroke="url(#umb-gold)" stroke-width="3" />
+                                <path d="M -150 -80 C -100 -120, -200 -150, -250 -100" fill="none" stroke="url(#umb-gold)" stroke-width="2" />
+                                <path d="M -300 0 C -200 100, -100 150, 0 50 C -50 150, -150 200, -300 0 Z" fill="url(#umb-paintCyan)" />
+                                <path d="M -350 50 C -250 150, -50 200, 50 100 C -50 120, -200 100, -350 50 Z" fill="url(#umb-paintCyan)" opacity="0.8"/>
+                                <path d="M -250 50 C -150 100, -50 100, 0 50" fill="none" stroke="#FFFFFF" stroke-width="2" opacity="0.7"/>
+                                <path d="M -50 80 Q 0 40 50 80 T 150 80" fill="none" stroke="url(#umb-paintCyan)" stroke-width="15" stroke-linecap="round"/>
+                                <path d="M -50 80 Q 0 40 50 80 T 150 80" fill="none" stroke="url(#umb-gold)" stroke-width="3" stroke-linecap="round"/>
+                                <circle cx="-150" cy="0" r="3" fill="url(#umb-gold)"/>
+                                <circle cx="-50" cy="-100" r="2.5" fill="url(#umb-gold)"/>
+                                <circle cx="150" cy="50" r="4" fill="url(#umb-gold)"/>
+                                <circle cx="250" cy="-50" r="2" fill="url(#umb-gold)"/>
+                            </g>
+                            <g stroke="#D4AF37" stroke-width="1" opacity="0.4">
+                                <line x1="0" y1="0" x2="380" y2="0" /><line x1="0" y1="0" x2="-380" y2="0" />
+                                <line x1="0" y1="0" x2="0" y2="240" /><line x1="0" y1="0" x2="0" y2="-240" />
+                                <line x1="0" y1="0" x2="268" y2="170" /><line x1="0" y1="0" x2="-268" y2="-170" />
+                                <line x1="0" y1="0" x2="-268" y2="170" /><line x1="0" y1="0" x2="268" y2="-170" />
+                            </g>
+                            <g>
+                                <circle cx="0" cy="0" r="25" fill="url(#umb-gold)" />
+                                <circle cx="0" cy="0" r="15" fill="url(#umb-jade)" />
+                                <circle cx="0" cy="0" r="10" fill="url(#umb-gold)" />
+                                <path d="M -5 5 L 15 -15 L 20 -40 L 5 -5 Z" fill="url(#umb-gold)" />
+                                <path d="M 5 -5 L 15 -15 L 20 -40 L 10 -20 Z" fill="#FFF" opacity="0.6"/>
+                            </g>
+                        </g>
+                    </g>
+                    
+                    <g class="weapon-part weapon-part-handle">
+                        <g filter="url(#umb-dropShadow)">
+                            <path d="M 0 0 L -180 250" stroke="url(#umb-gold)" stroke-width="12" stroke-linecap="round" />
+                            <path d="M 0 0 L -180 250" stroke="#FFF" stroke-width="3" stroke-linecap="round" opacity="0.6" />
+                            <path d="M -120 165 L -160 220" stroke="url(#umb-jade)" stroke-width="14" stroke-linecap="round" />
+                            <circle cx="-185" cy="255" r="12" fill="url(#umb-gold)" />
+                            <circle cx="-185" cy="255" r="6" fill="url(#umb-jade)" />
+                        </g>
+                        <g class="tassel-sway" transform="translate(-185, 265)">
+                            <line x1="0" y1="0" x2="0" y2="30" stroke="url(#umb-gold)" stroke-width="2" />
+                            <path d="M -10 30 C 20 80, -20 150, -10 200 C -30 150, 10 80, -10 30 Z" fill="#E6FFF0" opacity="0.9" />
+                            <path d="M 0 30 C 10 70, -10 130, 0 180 C -10 130, 5 70, 0 30 Z" fill="#A3FFDF" opacity="0.8" />
+                            <circle cx="0" cy="180" r="3" fill="#FFF" opacity="0.6" filter="url(#umb-glow)"/>
+                        </g>
+                    </g>
+                    
+                    <g class="weapon-part weapon-part-core">
+                        <g class="spinning-light" filter="url(#umb-heavyBloom)">
+                            <path d="M -150 -300 C 400 -200, 550 200, 150 350 C 50 400, 250 150, 50 -200" fill="none" stroke="var(--sword-color)" stroke-width="15" stroke-linecap="round" opacity="0.7"/>
+                            <path d="M -150 -300 C 400 -200, 550 200, 150 350 C 50 400, 250 150, 50 -200" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" opacity="0.8"/>
+                            <path d="M 100 -250 C 350 -150, 450 150, 200 300" fill="none" stroke="var(--sword-glow)" stroke-width="6" stroke-linecap="round" opacity="0.6"/>
+                        </g>
+                        <ellipse cx="180" cy="120" rx="150" ry="80" fill="var(--sword-color)" opacity="0.15" transform="rotate(-30 180 120)" filter="url(#umb-heavyBloom)" class="pulse-light"/>
+                    </g>
+                </g>
+
+                <!-- 3. 二代扇 -->
+                <g class="weapon-group" id="wp-二代扇" transform="translate(600, 310) scale(0.65)">
+                    <g class="base-weapon">
+                        <path d="M -320 0 C -340 -180, -180 -300, 0 -310 C 180 -300, 340 -180, 320 0 Z" fill="none" class="energy-solid" stroke-width="2"/>
+                        <path d="M -2 48 L -295 -45 M 0 48 L 0 -240 M 2 48 L 295 -45" class="energy-solid" stroke-width="2"/>
+                        <circle cx="0" cy="-90" r="62" class="energy-solid" stroke-width="2" fill="none"/>
+                    </g>
+
+                    <g class="weapon-part weapon-part-blade">
+                        <path d="M -320 0 C -340 -180, -180 -300, 0 -310 C 180 -300, 340 -180, 320 0 C 200 -25, -200 -25, -320 0 Z" fill="url(#fairySilk)" />
+                        <path d="M 0 -310 C 120 -300, 240 -200, 310 -30 C 200 -80, 100 -120, 50 -100 C 100 -160, 220 -150, 250 -60 C 180 -180, 50 -200, 0 -150 Z" fill="url(#glassJade)" opacity="0.4" />
+                        <path d="M 0 -310 C -150 -290, -280 -150, -310 -20 C -200 -50, -150 -100, -80 -90 C -150 -130, -250 -100, -260 -40 C -180 -150, -80 -180, 0 -120 Z" fill="url(#glassJade)" opacity="0.3" />
+                        <path d="M -250 -80 Q -100 -200 0 -180 T 250 -80" fill="none" stroke="#FFFFFF" stroke-width="1.5" opacity="0.4" filter="url(#bloomGlow)"/>
+                        <g class="sway-gentle">
+                            <path d="M -60 40 C -170 100, -260 10, -400 40 C -430 45, -460 20, -420 5 C -280 -35, -170 80, -60 20 Z" fill="url(#celestialGold)" />
+                            <path d="M -100 40 C -180 80, -240 -10, -350 25 C -310 5, -200 65, -100 20 Z" fill="url(#glassJade)" />
+                            <path d="M 60 40 C 170 100, 260 10, 400 40 C 430 45, 460 20, 420 5 C 280 -35, 170 80, 60 20 Z" fill="url(#celestialGold)" />
+                            <path d="M 100 40 C 180 80, 240 -10, 350 25 C 310 5, 200 65, 100 20 Z" fill="url(#glassJade)" />
+                        </g>
+                    </g>
+
+                    <g class="weapon-part weapon-part-guard" filter="drop-shadow(0 0 10px rgba(253, 241, 182, 0.3))">
+                        <path d="M -2 48 L -295 -45 L -288 -52 L 2 48 Z" fill="url(#celestialGold)" />
+                        <path d="M -2 48 L -235 -155 L -224 -162 L 2 48 Z" fill="url(#celestialGold)" />
+                        <path d="M -2 48 L -145 -235 L -130 -240 L 2 48 Z" fill="url(#celestialGold)" />
+                        <path d="M -2 48 L -65 -275 L -50 -278 L 2 48 Z" fill="url(#celestialGold)" />
+                        <path d="M -2 48 L 295 -45 L 288 -52 L 2 48 Z" fill="url(#celestialGold)" />
+                        <path d="M -2 48 L 235 -155 L 224 -162 L 2 48 Z" fill="url(#celestialGold)" />
+                        <path d="M -2 48 L 145 -235 L 130 -240 L 2 48 Z" fill="url(#celestialGold)" />
+                        <path d="M -2 48 L 65 -275 L 50 -278 L 2 48 Z" fill="url(#celestialGold)" />
+
+                        <g class="energy-glow" filter="url(#bloomGlow)">
+                            <circle cx="-190" cy="-110" r="4" /><circle cx="-110" cy="-180" r="4" /><circle cx="-40" cy="-210" r="4" />
+                            <circle cx="190" cy="-110" r="4" /><circle cx="110" cy="-180" r="4" /><circle cx="40" cy="-210" r="4" />
+                        </g>
+
+                        <use href="#fairy-feather" x="-280" y="-40" transform="rotate(-65 -280 -40) scale(0.85)" />
+                        <use href="#fairy-feather" x="-180" y="-170" transform="rotate(-35 -180 -170) scale(0.9)" />
+                        <use href="#fairy-feather" x="0" y="-240" transform="rotate(0 0 -240)" />
+                        <use href="#fairy-feather" x="180" y="-170" transform="rotate(35 180 -170) scale(0.9)" />
+                        <use href="#fairy-feather" x="280" y="-40" transform="rotate(65 280 -40) scale(0.85)" />
+                    </g>
+
+                    <g class="weapon-part weapon-part-handle sway-gentle">
+                        <path d="M -50 35 C -30 75, 30 75, 50 35 C 30 90, -30 90, -50 35 Z" fill="url(#celestialGold)" filter="drop-shadow(0 5px 5px rgba(0,0,0,0.3))"/>
+                        <circle cx="0" cy="65" r="8" fill="url(#glassJade)" filter="url(#bloomGlow)"/>
+                        
+                        <g transform="translate(0, 75)">
+                            <path d="M 0 0 L 0 50" stroke="#FFFDF0" stroke-width="2" stroke-dasharray="4 2" />
+                            <g transform="translate(0, 50)">
+                                <path d="M 0 -15 L 12 0 L 0 15 L -12 0 Z" fill="url(#celestialGold)" />
+                                <circle cx="0" cy="0" r="8" class="energy-glow" filter="url(#bloomGlow)" />
+                                <path d="M 0 15 C 25 50, 30 110, 0 160 C -30 110, -25 50, 0 15 Z" fill="url(#celestialGold)" opacity="0.9" />
+                                <path d="M 0 30 C 10 50, 15 90, 0 130 C -15 90, -10 50, 0 30 Z" fill="url(#glassJade)" />
+                                <circle cx="0" cy="110" r="5" fill="#FFFFFF" filter="url(#bloomGlow)" class="spirit-pulse"/>
+                            </g>
+                        </g>
+                    </g>
+
+                    <g class="weapon-part weapon-part-core" transform="translate(0, -90)">
+                        <g class="spin-slow" opacity="0.7" fill="none" filter="url(#bloomGlow)">
+                            <circle cx="0" cy="0" r="62" stroke-dasharray="10 5" class="energy-line" />
+                            <circle cx="0" cy="0" r="54" stroke="#FFFDF0" stroke-width="2" />
+                            <path d="M 0 -54 L 0 54 M -54 0 L 54 0 M -38 -38 L 38 38 M -38 38 L 38 -38" stroke="#fff" opacity="0.3"/>
+                        </g>
+                        <circle cx="0" cy="0" r="46" fill="none" stroke="url(#celestialGold)" stroke-width="2" stroke-dasharray="20 10" class="spin-slow-reverse" />
+
+                        <g class="spirit-pulse">
+                            <path d="M 0 -45 Q 15 -20 0 0 Q -15 -20 0 -45 Z" fill="url(#celestialGold)" />
+                            <path d="M 0 45 Q 15 20 0 0 Q -15 20 0 45 Z" fill="url(#celestialGold)" />
+                            <path d="M -45 0 Q -20 15 0 0 Q -20 -15 -45 0 Z" fill="url(#celestialGold)" />
+                            <path d="M 45 0 Q 20 15 0 0 Q 20 -15 45 0 Z" fill="url(#celestialGold)" />
+                            <circle cx="0" cy="0" r="14" fill="#FFFFFF" opacity="0.8" filter="url(#bloomGlow)" />
+                            <circle cx="0" cy="0" r="8" fill="#FFF2A8" />
+                        </g>
+
+                        <g class="energy-glow" filter="url(#bloomGlow)">
+                            <circle cx="-250" cy="-150" r="3" class="particle p1" />
+                            <circle cx="200" cy="-220" r="2" class="particle p2" />
+                            <circle cx="-100" cy="-280" r="4" class="particle p3" fill="#FFFFFF" />
+                            <circle cx="150" cy="-100" r="2.5" class="particle p4" />
+                            <circle cx="0" cy="-300" r="3" class="particle p5" />
+                            <circle cx="-80" cy="80" r="3" class="particle p2" />
+                            <circle cx="90" cy="50" r="2" class="particle p1" fill="#FFFFFF" />
+                            <circle cx="0" cy="180" r="3.5" class="particle p4" />
+                        </g>
+                    </g>
+                </g>
+
+                <!-- 4. 唐刀 -->
+                <g class="weapon-group" id="wp-唐刀" transform="translate(0, 50)">
+                    <g class="base-weapon">
+                        <path d="M 100,220 Q 400,190 700,195 L 700,215 Q 400,205 100,220 Z" class="energy-solid" />
+                        <rect x="712" y="192" width="200" height="16" class="energy-solid" />
+                    </g>
+                    <g class="weapon-part weapon-part-blade">
+                        <path class="energy-glow" d="M 100,220 Q 400,170 700,190 L 700,210 Q 400,190 100,220 Z" />
+                        <path class="energy-solid" d="M 120,215 Q 400,180 700,195 L 700,205 Q 400,200 120,215 Z" />
+                    </g>
+                    <g class="weapon-part weapon-part-guard">
+                        <rect x="700" y="160" width="12" height="80" rx="4" class="energy-solid" />
+                        <rect x="695" y="150" width="22" height="100" rx="10" class="energy-glow" />
+                    </g>
+                    <g class="weapon-part weapon-part-handle">
+                        <rect x="712" y="190" width="220" height="18" rx="4" class="energy-solid" />
+                        <path class="energy-line" d="M 720,190 L 740,208 M 740,190 L 760,208 M 760,190 L 780,208 M 780,190 L 800,208" />
+                    </g>
+                    <g class="weapon-part weapon-part-core">
+                        <circle cx="706" cy="200" r="30" class="energy-glow" />
+                    </g>
+                </g>
+
+                <!-- 5. 陌刀 -->
+                <g class="weapon-group" id="wp-陌刀" transform="translate(0, 50)">
+                    <g class="base-weapon">
+                        <path d="M 100,200 Q 300,160 580,188 L 580,212 Q 300,240 150,200 Z" class="energy-solid" />
+                        <rect x="620" y="190" width="400" height="20" class="energy-solid" />
+                    </g>
+                    <g class="weapon-part weapon-part-blade">
+                        <path class="energy-glow" d="M 100,200 Q 300,140 600,180 L 600,220 Q 300,260 100,200 Z" />
+                        <path class="energy-solid" d="M 150,200 Q 300,160 580,188 L 580,212 Q 300,240 150,200 Z" />
+                        <path class="energy-line" d="M 200,200 L 550,200" />
+                    </g>
+                    <g class="weapon-part weapon-part-guard">
+                        <polygon points="600,140 630,160 630,240 600,260 570,200" class="energy-solid" />
+                        <polygon points="590,130 640,150 640,250 590,270 550,200" class="energy-glow" />
+                    </g>
+                    <g class="weapon-part weapon-part-handle">
+                        <rect x="630" y="192" width="400" height="16" class="energy-solid" />
+                        <circle cx="1030" cy="200" r="12" class="energy-solid" />
+                    </g>
+                    <g class="weapon-part weapon-part-core">
+                        <circle cx="615" cy="200" r="40" class="energy-glow" />
+                        <path class="energy-solid" d="M 615,180 L 630,200 L 615,220 L 600,200 Z" />
+                    </g>
+                </g>
+
+                <!-- 6. 拳甲 -->
+                <g class="weapon-group" id="wp-拳甲" transform="translate(600, 250) scale(0.45)">
+                    
+                    <g class="base-weapon">
+                        <polygon points="570,220 600,100 630,220 600,360" class="energy-solid" fill="none" stroke-width="2"/>
+                        <path d="M 560,200 Q 400,150 300,120 Q 380,200 400,250 Q 480,250 560,250 Z" class="energy-solid" fill="none" stroke-width="2"/>
+                        <path d="M 640,200 Q 800,150 900,120 Q 820,200 800,250 Q 720,250 640,250 Z" class="energy-solid" fill="none" stroke-width="2"/>
+                    </g>
+                    
+                    <!-- 左甲 (blade) -->
+                    <g class="weapon-part weapon-part-blade">
+                        <g filter="url(#fist-featherShadow)">
+                            <path d="M -40 -10 C -150 -10, -350 40, -420 100 C -300 150, -150 120, -20 80 Z" fill="url(#fist-snowFeather)" />
+                            <path d="M -60 20 C -180 30, -320 80, -380 120 C -250 140, -120 100, -30 80 Z" fill="#E2E8F0" opacity="0.8"/>
+                            <path d="M -200 80 C -250 100, -350 120, -420 100 C -380 150, -280 180, -150 140 Z" fill="url(#fist-magicBlue)" />
+                            <path d="M -250 95 C -300 110, -380 130, -440 120 C -400 170, -300 190, -180 145 Z" fill="url(#fist-magicBlue)" opacity="0.8"/>
+                            <path d="M -120 120 C -150 140, -160 160, -140 180 C -120 150, -100 130, -120 120 Z" fill="url(#fist-magicBlue)" />
+                            <path d="M -180 130 C -210 150, -220 170, -200 190 C -180 160, -160 140, -180 130 Z" fill="url(#fist-magicBlue)" />
+                            <path d="M -240 140 C -270 160, -280 180, -260 200 C -240 170, -220 150, -240 140 Z" fill="url(#fist-magicBlue)" />
+                            <path d="M -40 -10 C -160 -15, -300 20, -380 70 C -320 20, -180 -30, -40 -25 Z" fill="url(#fist-darkArmor)" />
+                            <path d="M -150 -10 L -200 -30 L -180 0 Z" fill="url(#fist-darkArmor)" />
+                            <path d="M -250 10 L -300 -10 L -270 25 Z" fill="url(#fist-darkArmor)" />
+                            <path d="M -180 -15 L -200 -30 L -190 -10 Z" fill="url(#fist-magicBlue)" />
+                            <path d="M -280 -0 L -300 -10 L -290 10 Z" fill="url(#fist-magicBlue)" />
+                        </g>
+                    </g>
+
+                    <!-- 右甲 (guard) -->
+                    <g class="weapon-part weapon-part-guard"> 
+                        <g filter="url(#fist-featherShadow)">
+                            <path d="M 50 0 C 150 -50, 300 -120, 420 -80 C 350 20, 250 80, 150 80 Z" fill="url(#fist-snowFeather)" />
+                            <path d="M 280 -15 C 320 -10, 380 -50, 440 -70 C 400 0, 300 80, 200 60 Z" fill="url(#fist-magicBlue)" opacity="0.9"/>
+                            <path d="M 330 -40 C 380 -40, 430 -60, 460 -70 C 420 -20, 350 30, 250 30 Z" fill="url(#fist-magicBlue)" opacity="0.7"/>
+                            <path d="M 250 20 C 320 -10, 400 -40, 460 -70" stroke="url(#fist-silverLine)" stroke-width="2" fill="none" />
+                            <path d="M 200 40 C 280 10, 350 -10, 420 -30" stroke="url(#fist-silverLine)" stroke-width="2" fill="none" />
+                            <path d="M 50 0 C 180 -50, 300 -130, 420 -80 C 380 -100, 200 -70, 80 -10 Z" fill="url(#fist-darkArmor)" />
+                            <path d="M 150 -30 L 180 -50 L 190 -35 Z" fill="url(#fist-magicBlue)" />
+                            
+                            <path d="M -50 150 C -150 250, -150 350, -80 380 C 0 400, 100 380, 150 320 C 180 250, 100 150, 50 150 Z" fill="url(#fist-snowFeather)" />
+                            <path d="M -130 310 C -120 340, -100 360, -80 370 C -60 380, -40 370, -30 385 C -10 395, 10 390, 20 400 C 40 405, 60 395, 75 400 C 95 395, 120 375, 130 360 C 150 340, 160 310, 155 280 L 0 200 Z" fill="url(#fist-magicBlue)" />
+                            <g stroke="url(#fist-silverLine)" stroke-width="2" stroke-linecap="round" fill="none">
+                                <path d="M -50 200 L -120 330 M -30 210 L -80 360 M -10 220 L -30 380 M 10 220 L 20 390 M 30 210 L 70 380 M 50 200 L 110 350 M 70 190 L 140 310" />
+                            </g>
+                        </g>
+                    </g>
+
+                    <!-- 掌隼 (handle) -->
+                    <g class="weapon-part weapon-part-handle"> 
+                        <g filter="url(#fist-featherShadow)">
+                            <path d="M -50 0 C -80 50, -60 180, 0 200 C 60 180, 80 50, 50 0 C 30 -50, -30 -50, -50 0 Z" fill="url(#fist-snowFeather)" />
+                            <path d="M -30 -20 C -60 -60, -60 -100, -30 -120 C 0 -100, 20 -60, 0 -20 Z" fill="url(#fist-snowFeather)" />
+                            <path d="M -50 -100 C -65 -95, -70 -85, -60 -80 C -55 -80, -45 -90, -40 -95 Z" fill="#D1D6E0" />
+                            <circle cx="-35" cy="-95" r="3" fill="#0F1115" />
+                            <circle cx="-36" cy="-96" r="1.5" fill="var(--sword-color)" filter="url(#fist-lightGlow)"/>
+                            <path d="M -20 -110 C -25 -140, -15 -160, -5 -180 C -10 -150, 0 -130, -5 -110 Z" fill="url(#fist-magicBlue)" />
+                            <path d="M -10 -115 C -5 -130, 5 -140, 15 -150 C 5 -130, 10 -120, -5 -115 Z" fill="url(#fist-magicBlue)" />
+                            <path d="M -20 -90 C -10 -80, 0 -90, 5 -80 C 0 -70, -10 -70, -20 -90 Z" fill="url(#fist-darkArmor)" />
+                            <path d="M -20 180 C -30 200, -20 230, 0 240 C 10 220, 10 190, 0 180 Z" fill="url(#fist-snowFeather)" />
+                            <path d="M -10 230 L -20 250 M -5 235 L -5 255 M 0 230 L 10 245" stroke="#94A3B8" stroke-width="3" fill="none" />
+                            <circle cx="-5" cy="255" r="12" fill="none" stroke="#FCE182" stroke-width="4" filter="url(#fist-lightGlow)"/>
+                            <circle cx="-5" cy="255" r="8" fill="none" stroke="#FFFFFF" stroke-width="1" />
+                        </g>
+                        <g fill="#FFFFFF" opacity="0.8" filter="url(#fist-lightGlow)">
+                            <circle cx="-10" cy="50" r="2" /><circle cx="10" cy="80" r="1.5" /><circle cx="-20" cy="120" r="2.5" /><circle cx="20" cy="150" r="1.5" /><circle cx="-5" cy="180" r="2" />
+                        </g>
+                    </g>
+
+                    <!-- 明光 (core) -->
+                    <g class="weapon-part weapon-part-core"> 
+                        <g class="spirit-bird-1" transform="translate(-200, 300)" filter="url(#fist-spiritGlow)">
+                            <path d="M 0 0 C -30 -20, -60 20, -80 0 C -50 40, -10 10, 0 0 Z" fill="#FFFFFF" opacity="0.6"/>
+                            <path d="M 0 0 C 20 -30, 50 -10, 60 -40 C 40 0, 10 -10, 0 0 Z" fill="#FFFFFF" opacity="0.6"/>
+                            <path d="M -20 -10 C -50 -40, -90 -10, -120 -30 C -80 20, -30 10, 0 20 Z" fill="var(--sword-color)" opacity="0.7"/>
+                            <path d="M 10 -10 C 30 -50, 60 -30, 80 -80 C 50 -10, 20 0, 0 20 Z" fill="var(--sword-color)" opacity="0.7"/>
+                            <circle cx="0" cy="5" r="4" fill="#FFFFFF" />
+                            <path d="M -40 -20 Q -80 -60 -120 -20" stroke="var(--sword-glow)" stroke-width="2" fill="none" opacity="0.8"/>
+                        </g>
+                        <g class="spirit-bird-2" transform="translate(250, 250)" filter="url(#fist-spiritGlow)">
+                            <path d="M 0 0 C -40 -30, -80 -10, -120 -20 C -80 20, -20 20, 0 0 Z" fill="#FFFFFF" opacity="0.6"/>
+                            <path d="M 0 0 C 40 -40, 80 -10, 100 -50 C 60 -10, 20 10, 0 0 Z" fill="#FFFFFF" opacity="0.6"/>
+                            <path d="M -20 -10 C -60 -50, -120 -20, -160 -40 C -100 10, -40 20, 0 20 Z" fill="var(--sword-color)" opacity="0.6"/>
+                            <path d="M 10 -10 C 60 -60, 100 -20, 140 -80 C 80 -10, 30 10, -10 20 Z" fill="var(--sword-color)" opacity="0.6"/>
+                            <path d="M 0 10 C -20 50, -10 80, -30 120 C 0 80, 20 40, 0 10 Z" fill="var(--sword-glow)" opacity="0.8"/>
+                            <circle cx="-5" cy="5" r="5" fill="#FFFFFF" />
+                            <path d="M 40 -20 Q 100 -60 150 -10" stroke="#FFFFFF" stroke-width="2" fill="none" opacity="0.6"/>
+                            <path d="M -40 -10 Q -100 -30 -160 -10" stroke="#FFFFFF" stroke-width="1.5" fill="none" opacity="0.5"/>
+                        </g>
+                    </g>
+                </g>
+
+                <!-- 7. 弓 -->
+                <g class="weapon-group" id="wp-弓" transform="translate(600, 250) scale(0.5)">
+                    
+                    <g class="base-weapon">
+                        <path d="M -120 0 C -160 -100, -180 -250, -20 -360" class="energy-solid" fill="none" stroke-width="6"/>
+                        <path d="M -120 0 C -100 100, -150 250, -10 360" class="energy-solid" fill="none" stroke-width="6"/>
+                        <path d="M -20 -360 L 180 -20 L -10 360" class="energy-solid" fill="none" stroke-width="2"/>
+                    </g>
+
+                    <g class="weapon-part weapon-part-blade">
+                        <g class="flowing-ribbon" opacity="0.8" filter="url(#bow-shadow)">
+                            <path d="M -60 -360 C -150 -420, -280 -350, -250 -200 C -230 -120, -180 -100, -120 -80" fill="none" stroke="url(#bow-jade)" stroke-width="4" stroke-linecap="round" />
+                            <path d="M -70 -350 C -120 -400, -200 -330, -220 -220 C -230 -160, -150 -120, -100 -90" fill="none" stroke="#A3FFDF" stroke-width="1.5" />
+                            <path d="M -80 320 C -150 400, -250 420, -200 320 C -150 250, -100 200, -50 180" fill="none" stroke="url(#bow-jade)" stroke-width="4" stroke-linecap="round" />
+                        </g>
+
+                        <g filter="url(#bow-shadow)">
+                            <path d="M -120 0 C -160 -100, -180 -250, -20 -360" fill="none" stroke="url(#bow-jade)" stroke-width="14" stroke-linecap="round" />
+                            <path d="M -120 0 C -100 100, -150 250, -10 360" fill="none" stroke="url(#bow-jade)" stroke-width="14" stroke-linecap="round" />
+                            <path d="M -118 0 C -158 -100, -178 -250, -18 -360" fill="none" stroke="#FFFFFF" stroke-width="3" opacity="0.5" />
+                            <path d="M -118 0 C -98 100, -148 250, -8 360" fill="none" stroke="#FFFFFF" stroke-width="3" opacity="0.5" />
+                            <path d="M -135 -30 C -105 -30, -95 30, -135 30 C -150 0, -150 0, -135 -30 Z" fill="url(#bow-gold)" />
+                            <path d="M -130 -20 L -130 20" stroke="#FFFFFF" stroke-width="2" opacity="0.8" />
+                            <path d="M -135 -15 L -105 -15 M -138 0 L -102 0 M -135 15 L -105 15" stroke="#074032" stroke-width="4" />
+                            <path d="M -125 -30 C -150 -50, -120 -80, -140 -100" fill="none" stroke="url(#bow-gold)" stroke-width="4" stroke-linecap="round" />
+                            <path d="M -125 30 C -150 50, -120 80, -140 100" fill="none" stroke="url(#bow-gold)" stroke-width="4" stroke-linecap="round" />
+                        </g>
+
+                        <g filter="url(#bow-shadow)">
+                            <path d="M -150 -100 C -250 -150, -280 -250, -200 -200 C -220 -150, -180 -120, -150 -100 Z" fill="#8E99AA" />
+                            <path d="M -140 -120 C -240 -200, -220 -300, -160 -250 C -180 -200, -160 -150, -140 -120 Z" fill="#8E99AA" />
+                            <path d="M -130 -90 C -260 -180, -240 -320, -180 -280 C -210 -220, -160 -140, -130 -90 Z" fill="url(#bow-silverFeather)" />
+                            <path d="M -120 -110 C -220 -220, -180 -360, -120 -320 C -150 -260, -140 -160, -120 -110 Z" fill="url(#bow-silverFeather)" />
+                            <path d="M -100 -140 C -160 -260, -80 -380, -40 -350 C -80 -280, -100 -200, -100 -140 Z" fill="url(#bow-silverFeather)" />
+                            <path d="M -140 -100 C -240 -190, -230 -300, -190 -280 C -210 -230, -170 -150, -140 -100 Z" fill="#FFFFFF" />
+                            <path d="M -110 -120 C -190 -230, -150 -340, -100 -310 C -140 -250, -130 -170, -110 -120 Z" fill="#FFFFFF" />
+                            <path d="M -160 -80 C -200 -90, -220 -60, -190 -40 C -170 -60, -150 -60, -160 -80 Z" fill="url(#bow-gold)" />
+                            <circle cx="-180" cy="-65" r="3" fill="#FFFFFF" opacity="0.8" filter="url(#bow-glow)" />
+                            
+                            <path d="M -130 100 C -220 180, -200 280, -120 220 C -150 180, -140 140, -130 100 Z" fill="#8E99AA" />
+                            <path d="M -100 130 C -180 220, -100 340, -40 280 C -80 220, -100 180, -100 130 Z" fill="#8E99AA" />
+                            <path d="M -120 80 C -280 200, -150 350, -50 300 C -150 250, -140 150, -120 80 Z" fill="url(#bow-silverFeather)" />
+                            <path d="M -100 120 C -200 280, -50 400, 50 350 C -50 300, -80 200, -100 120 Z" fill="url(#bow-silverFeather)" />
+                            <path d="M -80 180 C -120 320, 50 450, 150 380 C 20 350, -50 250, -80 180 Z" fill="url(#bow-silverFeather)" />
+                            <path d="M -110 100 C -220 220, -80 340, -20 300 C -100 250, -120 160, -110 100 Z" fill="#FFFFFF" />
+                            <path d="M -70 180 C -100 300, 20 400, 100 360 C 0 320, -50 240, -70 180 Z" fill="#FFFFFF" />
+                            <path d="M -130 70 C -180 100, -160 150, -120 120 C -140 100, -130 80, -130 70 Z" fill="url(#bow-gold)" />
+                        </g>
+
+                        <g filter="url(#bow-shadow)">
+                            <path d="M -230 -20 L -270 20 C -260 10, -240 -10, -230 -20 Z" fill="url(#bow-jade)" />
+                            <path d="M -210 10 L -250 50 C -240 40, -220 20, -210 10 Z" fill="url(#bow-jade)" />
+                            <path d="M -230 -20 L -270 20 M -210 10 L -250 50" stroke="url(#bow-gold)" stroke-width="1.5" />
+                            <path d="M 0 380 L -50 420 C -40 410, -10 390, 0 380 Z" fill="url(#bow-jade)" />
+                            <path d="M 30 360 L -20 400 C -10 390, 20 370, 30 360 Z" fill="url(#bow-jade)" />
+                            <path d="M 0 380 L -50 420 M 30 360 L -20 400" stroke="url(#bow-gold)" stroke-width="1.5" />
+                            
+                            <circle cx="-20" cy="-360" r="8" fill="url(#bow-jade)" />
+                            <path d="M -25 -355 L -10 -370" stroke="#FFF" stroke-width="2" />
+                            <circle cx="-10" cy="360" r="8" fill="url(#bow-jade)" />
+                            <path d="M -15 355 L 0 370" stroke="#FFF" stroke-width="2" />
+                        </g>
+                    </g>
+                    
+                    <g class="weapon-part weapon-part-guard">
+                        <g class="pulse-light">
+                            <path d="M -20 -360 L 180 -20 L -10 360" fill="none" stroke="var(--sword-color)" stroke-width="3" filter="url(#bow-glow)" />
+                            <path d="M -15 -350 L 175 -20 L -5 350" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.9" />
+                        </g>
+                    </g>
+
+                    <g class="weapon-part weapon-part-handle">
+                        <g class="pulse-light">
+                            <line x1="-200" y1="20" x2="220" y2="-20" stroke="var(--sword-color)" stroke-width="5" filter="url(#bow-glow)" />
+                            <line x1="-150" y1="15" x2="210" y2="-19" stroke="#FFFFFF" stroke-width="2" />
+                            <path d="M 230 -21 L 200 -26 L 210 -20 L 200 -14 Z" fill="#FFFFFF" filter="url(#bow-glow)" opacity="0.8"/>
+                            <path d="M 220 -20 L 190 -23 L 195 -20 L 190 -17 Z" fill="var(--sword-color)" />
+                            <path d="M -220 22 L -180 10 L -160 15 Z" fill="var(--sword-color)" opacity="0.8" filter="url(#bow-glow)"/>
+                            <path d="M -210 28 L -170 16 L -150 21 Z" fill="var(--sword-glow)" opacity="0.8" filter="url(#bow-glow)"/>
+                        </g>
+                    </g>
+
+                    <g class="weapon-part weapon-part-core">
+                        <circle cx="180" cy="-20" r="8" fill="#FFFFFF" filter="url(#bow-glow)" opacity="0.8"/>
+                        <circle cx="180" cy="-20" r="15" fill="var(--sword-color)" opacity="0.6" filter="url(#bow-glow)" />
+                        
+                        <g fill="var(--sword-color)" filter="url(#bow-glow)">
+                            <circle cx="-100" cy="-200" r="6" class="particle p1" />
+                            <circle cx="100" cy="200" r="8" class="particle p2" />
+                            <circle cx="250" cy="-50" r="5" class="particle p3" />
+                            <circle cx="50" cy="-300" r="4" class="particle p4" fill="#FFFFFF"/>
+                            <circle cx="-50" cy="300" r="5" class="particle p5" fill="#FFFFFF"/>
+                        </g>
+                    </g>
+                </g>
+
+            </svg>
+        </div>
+        <div id="slots-container"></div>
+    </div>
+
+    <!-- 左下角按键 -->
+    <div class="bottom-left-keys">
+        <div class="key-item" onclick="handleResetClick()"><span class="key-btn">F5</span> 重置 <span id="ui-btn-weapon">剑</span></div>
+        <div class="key-item" onclick="toggleCollectionPanel()"><span class="key-btn purple">C</span> 藏音阁</div>
+    </div>
+    
+    <!-- 右下角按键 -->
+    <div class="bottom-right-keys">
+        <div class="key-item" onclick="toggleSchemePanel()"><span class="key-btn">R</span> 暂存方案</div>
+        <div class="key-item" onclick="handleEnterClick()"><span class="key-btn gold">Enter</span> 应用重铸</div>
+    </div>
+
+    <div class="bottom-center" id="bottom-center">
+        <div class="mini-diamonds" id="mini-diamonds"></div>
+        <div class="btn-reforge" onclick="handleSpaceClick()">
+            <div class="btn-key">Space</div>
+            <div class="btn-text">重铸</div>
+            <div class="btn-cost">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="#8e58a8"><polygon points="12,2 20,10 12,22 4,10"/></svg>
+                <span id="ui-cost">1</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 暂存面板 -->
+    <div class="side-panel scheme-panel" id="scheme-panel">
+        <div class="sp-header">
+            <div class="sp-title">重铸预览</div>
+            <div class="btn-close-panel" onclick="toggleSchemePanel()">[R] 收起</div>
+        </div>
+        <div class="sp-desc">选中暂存方案后，按 [Enter] 即可直接为此极品赐名并收入藏音阁。</div>
+        <div class="list-container" id="scheme-list"></div>
+        <div class="sp-actions" id="sp-actions" style="display: none;">
+            <button class="sp-btn cancel" onclick="cancelPreview()">取消</button>
+            <button class="sp-btn confirm" onclick="handleEnterClick()">[Enter] 收录藏音阁</button>
+        </div>
+    </div>
+
+    <!-- 藏音阁面板 -->
+    <div class="side-panel collection-panel" id="collection-panel">
+        <div class="sp-header">
+            <div class="sp-title">我的藏音阁</div>
+            <div class="btn-close-panel" onclick="toggleCollectionPanel()">[C] 收起</div>
+        </div>
+        <div class="sp-desc">此处记录了您洗出的稀世神兵。数据存储于本地浏览器。</div>
+        <div class="list-container" id="collection-list"></div>
+    </div>
+
+    <!-- 提示框与输入框 -->
+    <div id="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-title" id="modal-text">提示信息</div>
+            <input type="text" id="modal-input" style="display:none;" />
+            <div class="modal-btns">
+                <button class="key-btn" onclick="closeModal()">取 消</button>
+                <button class="key-btn gold" onclick="confirmModal()">确 认</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="dev-panel" id="dev-panel">
+        <div class="dev-title" id="dev-title-text">隐形后台监控 - 剑</div>
+        <div class="dev-line"><span>累计消耗玄石</span><span id="dev-stones">0</span></div>
+        <div class="dev-line"><span>预估折算金额</span><span>¥ <span id="dev-rmb">0.0</span></span></div>
+        <div class="dev-line"><span>累计出金次数</span><span id="dev-golds" style="color:var(--gold-base);">0</span></div>
+    </div>
+
+    <div id="recharge-overlay">
+        <div class="rc-box">
+            <div class="rc-title">获取玄石</div>
+            <div class="rc-grid">
+                <div class="rc-item" onclick="buyStones(60)"><span>60 玄石</span><span class="rc-price">¥ 6</span></div>
+                <div class="rc-item" onclick="buyStones(300)"><span>300 玄石</span><span class="rc-price">¥ 30</span></div>
+                <div class="rc-item" onclick="buyStones(980)"><span>980 玄石</span><span class="rc-price">¥ 98</span></div>
+                <div class="rc-item" onclick="buyStones(1980)"><span>1980 玄石</span><span class="rc-price">¥ 198</span></div>
+                <div class="rc-item" onclick="buyStones(3280)"><span>3280 玄石</span><span class="rc-price">¥ 328</span></div>
+                <div class="rc-item" onclick="buyStones(6480)"><span>6480 玄石</span><span class="rc-price">¥ 648</span></div>
+            </div>
+            <button class="rc-close" onclick="closeRecharge()">暂不获取</button>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        function playSound(type) {
+            const audioEl = document.getElementById(`audio-${type}`);
+            if (audioEl) { const clone = audioEl.cloneNode(); clone.play().catch(e => {}); }
+        }
+
+        const STORAGE_KEY = 'yysls_reforge_data_v2_91';
+
+        const WEAPON_TITLES = {
+            '剑': '藏音·龙跃霄汉', '枪': '藏音·昆山玉碎', '二代伞': '藏音·星河欲曙', '二代扇': '藏音·觉蒙天风',
+            '唐刀': '藏音·羲和敲日', '陌刀': '藏音·万古悲尘', '拳甲': '藏音·丹霄清鸣', '弓': '藏音·凤凰于飞'
+        };
+
+        const WEAPON_TYPES = {
+            '剑': ['剑颚', '剑刃', '颜色', '剑柄', '明光'], '枪': ['枪杆', '枪头', '颜色', '枪套', '明光'],
+            '二代伞': ['伞饰', '伞面', '颜色', '伞底', '明光'], '二代扇': ['扇骨', '扇面', '颜色', '扇坠', '明光'],
+            '唐刀': ['刀柄', '刀刃', '颜色', '环首', '明光'], '陌刀': ['刀鄂', '刀头', '颜色', '刀杆', '明光'],
+            '拳甲': ['右甲', '左甲', '颜色', '掌隼', '明光'], '弓': ['握弦', '弓身', '颜色', '箭矢', '明光']
+        };
+
+        const SLOT_DEFS =[
+            { type: '', align: 'left', logicalIndex: 2 }, { type: '', align: 'left', logicalIndex: 1 }, 
+            { type: '颜色', align: 'left', logicalIndex: 0 }, { type: '', align: 'right', logicalIndex: 3 },
+            { type: '明光', align: 'right', logicalIndex: 4 } 
+        ];
+
+        const WEAPON_SETS = {
+            '剑': { blue: ['负岳'], purple: ['蟠枝', '衔锋'], gold: ['炼虹', '擎冰'] },
+            '枪': { blue: ['套装一·潜蛟'], purple: ['套装一·清光', '套装二·素冰'], gold: ['套装一·九霄', '套装二·亢龙'] },
+            '二代伞': { blue: ['套装一·欢宴'], purple: ['套装一·惊梦', '套装二·玉颜'], gold: ['套装一·碧落', '套装二·太真'] },
+            '二代扇': { blue: ['套装一·春泽'], purple: ['套装一·急鼓', '套装二·秾华'], gold: ['套装一·银汉', '套装二·蓬瀛'] },
+            '唐刀': { blue: ['套装一·烛烟'], purple: ['套装一·海清', '套装二·劫烬'], gold: ['套装一·霜月', '套装二·焚羲'] },
+            '陌刀': { blue: ['套装一·石火'], purple: ['套装一·阆风', '套装二·酌酒'], gold: ['套装一·宵梦', '套装二·西荒'] },
+            '拳甲': { blue: ['套装一·琤琮'], purple: ['套装一·幽响', '套装二·云韶'], gold: ['套装一·焚歌', '套装二·玄籁'] },
+            '弓': { blue: ['套装一·逸羽'], purple: ['套装一·宵影', '套装二·晨晖'], gold: ['套装一·清仪', '套装二·腾光'] }
+        };
+
+        const COMMON_COLORS = {
+            blue: ['胭脂', '青金', '苍茫', '朱栏', '松绿', '芽黄', '暮紫', '羽灰', '墨尘'],
+            purple: ['杏粉', '烟蓝', '水色', '杜鹃', '微草', '南桔', '藤紫', '白贝', '寒鸦'],
+            gold: ['桃晶', '龙渊', '冰泉', '红锦', '碧玉', '黄金', '紫琉', '珍珠', '黑曜']
+        };
+
+        const SUB_COLOR_ALL = ['粉', '红', '黄', '紫', '黑', '浅蓝', '深蓝', '绿', '白', '灰'];
+        const METAL_COLOR_ALL = ['亮金', '浅金', '暗金', '玫瑰金', '铂金', '亮银', '暗银', '亮粉', '浅粉', '铜'];
+        const SUB_COLOR_MAP = {
+            '黑曜': ['深蓝', '浅蓝', '黑', '白', '紫'], '桃晶': ['白', '黑', '粉', '灰', '红'],
+            '红锦': ['红', '白', '黑'], '黄金': ['黄', '白', '黑', '灰'],
+            '紫琉': ['紫', '黑', '白', '粉', '灰'], '龙渊': ['深蓝', '浅蓝', '黑', '白', '粉'],
+            '冰泉': ['深蓝', '浅蓝', '黑', '白', '粉'], '碧玉': ['绿', '黑', '白'], '珍珠': SUB_COLOR_ALL
+        };
+
+        const PROB = { PURPLE: 0.15 }; const UNLOCK_MAX = 30; const CRIT_RATE = 0.015; const COST_MAP =[1, 2, 5, 10, 20];
+
+        function generateNextGoldPity() {
+            let r = Math.random();
+            if (r < 0.20) return Math.floor(Math.random() * 25) + 1; 
+            else if (r < 0.80) return Math.floor(Math.random() * 20) + 26; 
+            else if (r < 0.95) return Math.floor(Math.random() * 20) + 46; 
+            else return Math.floor(Math.random() * 25) + 66; 
+        }
+
+        const svgLock = `<svg class="svg-lock" viewBox="0 0 24 24"><path class="lock-shackle" d="M7 10V7a5 5 0 0 1 10 0v3" fill="none" stroke-width="2" stroke-linecap="round"/><rect class="lock-body" x="4" y="10" width="16" height="12" rx="2" stroke-width="2"/></svg>`;
+
+        let appData = {
+            mode: 'practice', balance: 0, totalSpent: 0, totalGolds: 0,
+            weaponType: '剑', weaponData: { unlockedCount: 1, slots: [] },
+            schemeData: { manual: null, auto: [] }, collection: []
+        };
+
+        let isPanelOpen = false; let isCollectionOpen = false; let isPreviewing = false; let previewData = null; 
+        let activeSchemeId = null; let pendingConfirmCallback = null; let isBreakthroughState = false; 
+
+        function formatDispName(name) { return name.replace(/套装[一二三]·/, ''); }
+
+        function initNewWeaponData(wType) {
+            let slots = SLOT_DEFS.map((def, i) => ({
+                id: i, type: def.type, align: def.align, logIdx: def.logicalIndex,
+                name: '未贯通', rank: 'none', locked: false, pity: 0, prog: 0, 
+                targetPity: generateNextGoldPity(), subColor: null, accentColor: null, metalColor: null
+            }));
+            slots[2].rank = 'blue'; slots[2].name = WEAPON_SETS[wType] ? WEAPON_SETS[wType].blue[0] : '默认';
+            return { unlockedCount: 1, slots: slots };
+        }
+
+        function loadData() {
+            let saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) { try { let parsed = JSON.parse(saved); appData = { ...appData, ...parsed }; } catch(e) {} } 
+            if (appData.weaponType === '一代伞') appData.weaponType = '二代伞';
+            if (!saved || !appData.weaponData || appData.weaponData.slots.length === 0) { appData.weaponData = initNewWeaponData(appData.weaponType); }
+            document.getElementById('weapon-type-select').value = appData.weaponType;
+            syncModeUI(); updateBottomLeftUI();
+        }
+
+        function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(appData)); }
+
+        function hardResetAccount() {
+            if(confirm("【警告】您即将清空所有缓存数据（包括玄石、藏音阁图鉴）。\n确定要彻底洗号吗？")) {
+                localStorage.removeItem(STORAGE_KEY); location.reload();
+            }
+        }
+
+        function setMode(mode) {
+            playSound('chongzhu'); appData.mode = mode; saveData(); syncModeUI(); render();
+            showToast(mode === 'practice' ? "已切换至透视练习模式" : "已切换至沉浸真实模式");
+        }
+
+        function syncModeUI() {
+            document.getElementById('btn-practice').className = appData.mode === 'practice' ? 'mode-btn active' : 'mode-btn';
+            document.getElementById('btn-real').className = appData.mode === 'real' ? 'mode-btn active' : 'mode-btn';
+            document.getElementById('dev-panel').style.display = appData.mode === 'practice' ? 'block' : 'none';
+            document.getElementById('top-right-ui').style.display = appData.mode === 'real' ? 'flex' : 'none';
+        }
+
+        function updateBottomLeftUI() {
+            const w = appData.weaponType;
+            document.getElementById('ui-btn-weapon').innerText = w;
+            document.getElementById('dev-title-text').innerText = `隐形后台监控 - ${w}`;
+        }
+
+        function isSetColor(name) { return name.includes('套装') || ['负岳', '蟠枝', '衔锋', '炼虹', '擎冰'].includes(name); }
+
+        function rollSubColors(slot) {
+            if (slot.logIdx === 0 && slot.rank === 'gold' && !isSetColor(slot.name)) {
+                let subPool = SUB_COLOR_MAP[slot.name] || SUB_COLOR_ALL;
+                slot.subColor = subPool[Math.floor(Math.random() * subPool.length)];
+                slot.accentColor = SUB_COLOR_ALL[Math.floor(Math.random() * SUB_COLOR_ALL.length)];
+                slot.metalColor = METAL_COLOR_ALL[Math.floor(Math.random() * METAL_COLOR_ALL.length)];
+            } else { slot.subColor = null; slot.accentColor = null; slot.metalColor = null; }
+        }
+
+        function rollName(type, rank) {
+            if (type === '明光') return rank === 'gold' ? '曜日' : '未贯通'; 
+            const sets = WEAPON_SETS[appData.weaponType][rank];
+            if (type === '颜色') {
+                const pool = [...sets, ...COMMON_COLORS[rank]]; return pool[Math.floor(Math.random() * pool.length)];
+            } else { return sets[Math.floor(Math.random() * sets.length)]; }
+        }
+
+        function getElementalColorHex(name) {
+            if (name.includes('默认')) return '#a8ddec'; 
+            if (name.includes('紫') || name.includes('藤') || name.includes('杜鹃') || name.includes('幽响') || name.includes('清光') || name.includes('宵影')) return '#be5aff';
+            if (name.includes('红') || name.includes('炼虹') || name.includes('胭脂') || name.includes('锦') || name.includes('惊梦') || name.includes('焚歌') || name.includes('劫烬')) return '#ff4040';
+            if (name.includes('冰') || name.includes('蓝') || name.includes('水') || name.includes('青') || name.includes('潜蛟') || name.includes('海清') || name.includes('碧落') || name.includes('烛烟')) return '#40c0ff';
+            if (name.includes('金') || name.includes('黄') || name.includes('桃') || name.includes('擎冰') || name.includes('太真') || name.includes('腾光') || name.includes('银汉') || name.includes('九霄') || name.includes('亢龙')) return '#ffdf50';
+            if (name.includes('黑') || name.includes('墨') || name.includes('鸦') || name.includes('暗') || name.includes('玄籁')) return '#8020b0';
+            if (name.includes('白') || name.includes('珍珠') || name.includes('贝') || name.includes('素冰') || name.includes('霜月') || name.includes('清仪')) return '#ffffff';
+            if (name.includes('玉') || name.includes('绿') || name.includes('草') || name.includes('微草') || name.includes('春泽') || name.includes('逸羽')) return '#40ff80'; 
+            return '#a8ddec';
+        }
+
+        function injectSwordColor(name) {
+            let hex = getElementalColorHex(name);
+            let r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+            document.documentElement.style.setProperty('--sword-color', `rgba(${r},${g},${b},0.95)`);
+            document.documentElement.style.setProperty('--sword-glow', `rgba(${r},${g},${b},0.6)`);
+        }
+
+        function getRarityColorHex(rank) {
+            if (rank === 'gold') return '#fef0b9';   
+            if (rank === 'purple') return '#e4cfff'; 
+            if (rank === 'blue') return '#bdf0ff';   
+            return 'transparent';
+        }
+
+        function calcScore(slots) {
+            const val = { gold: 1000, purple: 400, blue: 120, none: 0 };
+            return 2000 + slots.reduce((acc, s) => acc + val[s.rank], 0);
+        }
+
+        // ⭐ 新增带 Input 的 prompt 弹窗，用于命名 ⭐
+        function showPrompt(text, defaultValue, onConfirm) {
+            document.getElementById('modal-text').innerHTML = text;
+            const input = document.getElementById('modal-input');
+            input.style.display = 'block';
+            input.value = defaultValue;
+            document.getElementById('modal-overlay').style.display = 'flex';
+            input.focus(); input.select();
+            
+            pendingConfirmCallback = () => {
+                onConfirm(input.value.trim() || defaultValue);
+            };
+        }
+
+        function showModal(text, onConfirm) {
+            document.getElementById('modal-text').innerHTML = text;
+            document.getElementById('modal-input').style.display = 'none';
+            document.getElementById('modal-overlay').style.display = 'flex';
+            pendingConfirmCallback = onConfirm;
+        }
+
+        function closeModal() { 
+            document.getElementById('modal-overlay').style.display = 'none'; 
+            document.getElementById('modal-input').style.display = 'none'; 
+            pendingConfirmCallback = null; 
+        }
+
+        function confirmModal() { if (pendingConfirmCallback) pendingConfirmCallback(); closeModal(); }
+
+        function showMultiGoldToast(count) {
+            const el = document.getElementById('multi-gold-toast');
+            el.innerText = count >= 3 ? "三金耀世" : "双金现世";
+            el.style.opacity = 1; el.style.transform = 'translate(-50%, -50%) scale(1)';
+            setTimeout(() => { el.style.opacity = 0; el.style.transform = 'translate(-50%, -50%) scale(0.5)'; }, 1500);
+        }
+
+        function spawnParticles(domId, rank) {
+            if (rank === 'none') return;
+            const container = document.querySelector(`#${domId} .slot-icon`);
+            if (!container) return;
+            const oldWrap = container.querySelector('.particle-wrapper');
+            if (oldWrap) oldWrap.remove();
+
+            const wrapper = document.createElement('div'); wrapper.className = 'particle-wrapper';
+            let count, maxDist, color, flareSize;
+            if (rank === 'gold') { count = 30; maxDist = 90; color = '#fef0b9'; flareSize = 75; } 
+            else if (rank === 'purple') { count = 18; maxDist = 60; color = '#e4cfff'; flareSize = 55; } 
+            else if (rank === 'blue') { count = 10;  maxDist = 35; color = '#bdf0ff'; flareSize = 35; }
+
+            const flare = document.createElement('div'); flare.className = 'particle-flare';
+            flare.style.color = color; flare.style.width = flareSize + 'px'; flare.style.height = flareSize + 'px';
+            wrapper.appendChild(flare);
+
+            for (let i = 0; i < count; i++) {
+                const spark = document.createElement('div'); spark.className = 'particle-spark'; spark.style.color = color;
+                const size = Math.random() * 4 + 1.5; 
+                spark.style.width = size + 'px'; spark.style.height = size + 'px'; spark.style.boxShadow = `0 0 ${size}px currentColor, 0 0 ${size*2}px currentColor`;
+                const angle = Math.random() * Math.PI * 2; const r = Math.random() * (maxDist * 0.8) + (maxDist * 0.2); 
+                spark.style.setProperty('--tx', `${Math.cos(angle) * r}px`); spark.style.setProperty('--ty', `${Math.sin(angle) * r}px`);
+                spark.style.setProperty('--dur', (0.3 + Math.random() * 0.4) + 's');
+                wrapper.appendChild(spark);
+            }
+            container.appendChild(wrapper); setTimeout(() => { if (wrapper.parentNode) wrapper.remove(); }, 800);
+        }
+
+        function onWeaponChange() {
+            playSound('chongzhu');
+            const val = document.getElementById('weapon-type-select').value;
+            appData.weaponType = val; appData.totalSpent = 0; appData.totalGolds = 0;
+            appData.weaponData = initNewWeaponData(val); appData.schemeData = { manual: null, auto: [] };
+            
+            const names = WEAPON_TYPES[val];
+            appData.weaponData.slots.forEach((s, i) => { s.type = names[i]; });
+            
+            document.querySelector('.wn-title').innerText = WEAPON_TITLES[val] || '藏音·龙跃霄汉';
+            document.querySelectorAll('.weapon-group').forEach(el => el.classList.remove('active'));
+            const targetGroup = document.getElementById(`wp-${val}`);
+            if (targetGroup) targetGroup.classList.add('active');
+
+            updateBottomLeftUI(); saveData(); initDOM(); render();
+            if (isPanelOpen) renderSchemePanel();
+            showToast("已切换武器，所有进度与后台消耗重新计算");
+        }
+
+        function initDOM() {
+            const container = document.getElementById('slots-container'); container.innerHTML = ''; 
+            const names = WEAPON_TYPES[appData.weaponType];
+            document.querySelector('.wn-title').innerText = WEAPON_TITLES[appData.weaponType] || '藏音·龙跃霄汉';
+
+            appData.weaponData.slots.forEach((s, i) => {
+                s.type = names[i]; 
+                const el = document.createElement('div');
+                el.className = `slot rank-${s.rank} ${s.align}-side`; el.id = `slot-${i}`;
+                el.onclick = () => { if (s.logIdx < appData.weaponData.unlockedCount && i !== 4 && !isPreviewing) toggleLock(i); };
+
+                const iconHtml = `<div class="slot-icon"><div class="diamond"></div></div>`;
+                let dispName = formatDispName(s.name);
+                let nameHtml = s.locked ? `<div class="slot-name">${svgLock} ${dispName}</div>` : `<div class="slot-name">${dispName}</div>`;
+                let extraHtml = s.subColor ? `<div class="slot-extra">辅:${s.subColor} &nbsp;缀:${s.accentColor} &nbsp;金:${s.metalColor}</div>` : '';
+
+                const infoHtml = `<div class="slot-info"><div class="slot-type">${s.type}</div>${nameHtml}${extraHtml}</div>`;
+                el.innerHTML = s.align === 'left' ? infoHtml + iconHtml : iconHtml + infoHtml;
+                container.appendChild(el);
+            });
+            
+            document.querySelectorAll('.weapon-group').forEach(el => el.classList.remove('active'));
+            const targetGroup = document.getElementById(`wp-${appData.weaponType}`);
+            if (targetGroup) targetGroup.classList.add('active');
+        }
+
+        function handleResetClick() { showModal(`确定要重置当前【${appData.weaponType}】的进度吗？<br>（暂存方案也会清空，后台累积消耗数据重新计算）`, doResetAction); }
+
+        function doResetAction() {
+            playSound('chongzhu');
+            appData.totalSpent = 0; appData.totalGolds = 0;
+            appData.weaponData = initNewWeaponData(appData.weaponType); appData.schemeData = { manual: null, auto: [] };
+            const names = WEAPON_TYPES[appData.weaponType];
+            appData.weaponData.slots.forEach((s, i) => { s.type = names[i]; });
+            saveData(); initDOM(); render();
+            if (isPanelOpen) renderSchemePanel();
+            showToast("当前武器进度已完全重置");
+        }
+
+        function getRarityHtml(slotsArray) {
+            const order = [2, 1, 0, 3, 4]; let html = '';
+            order.forEach(id => {
+                let s = slotsArray[id];
+                if(s.rank === 'none') { html += `<div class="mini-diamond" style="color:transparent; background:transparent;"></div>`; } 
+                else { let hex = getRarityColorHex(s.rank); html += `<div class="mini-diamond" style="color:${hex}; border-color:${hex}; box-shadow:0 0 5px ${hex};"></div>`; }
+            });
+            return html;
+        }
+
+        function render() {
+            const renderTarget = isPreviewing ? previewData : appData.weaponData.slots;
+            let lockedCount = 0;
+
+            renderTarget.forEach((s, i) => {
+                if (s.locked && i !== 4) lockedCount++;
+                const el = document.getElementById(`slot-${i}`); if(!el) return;
+                el.className = `slot rank-${s.rank} ${s.locked && i !== 4 ? 'is-locked' : ''} ${s.align}-side`;
+                
+                let dispName = formatDispName(s.name);
+                let nameHtml = s.locked && i !== 4 ? `<div class="slot-name">${svgLock} ${dispName}</div>` : `<div class="slot-name">${dispName}</div>`;
+                let extraHtml = s.subColor ? `<div class="slot-extra">辅:${s.subColor} &nbsp;缀:${s.accentColor} &nbsp;金:${s.metalColor}</div>` : '';
+                el.querySelector('.slot-info').innerHTML = `<div class="slot-type">${s.type}</div>${nameHtml}${extraHtml}`;
+            });
+
+            document.getElementById('ui-total-score').innerText = calcScore(renderTarget);
+            document.getElementById('mini-diamonds').innerHTML = getRarityHtml(renderTarget);
+
+            const colorSlot = renderTarget[2]; 
+            const bladeSlot = renderTarget[1]; 
+            const guardSlot = renderTarget[0]; 
+            const handleSlot = renderTarget[3]; 
+            const mingSlot = renderTarget[4];  
+            const swordObj = document.getElementById('sword-obj');
+            
+            if (colorSlot.rank !== 'none') {
+                swordObj.classList.remove('dim-state');
+                injectSwordColor(colorSlot.name);
+                document.getElementById('sword-flame').classList.add('active');
+            } else {
+                swordObj.classList.add('dim-state');
+                document.documentElement.style.setProperty('--sword-color', `rgba(180, 200, 220, 0.5)`);
+                document.documentElement.style.setProperty('--sword-glow', `rgba(180, 200, 220, 0.2)`);
+                document.getElementById('sword-flame').classList.remove('active');
+            }
+
+            const targetGroup = document.getElementById(`wp-${appData.weaponType}`);
+            if (targetGroup) {
+                const parts = [
+                    { sel: '.weapon-part-guard',  slot: guardSlot },
+                    { sel: '.weapon-part-blade',  slot: bladeSlot },
+                    { sel: '.weapon-part-handle', slot: handleSlot },
+                    { sel: '.weapon-part-core',   slot: mingSlot }
+                ];
+                parts.forEach(p => {
+                    const node = targetGroup.querySelector(p.sel);
+                    if(node) {
+                        if(p.slot.rank !== 'none') node.classList.add('unlocked');
+                        else node.classList.remove('unlocked');
+                    }
+                });
+            }
+
+            const currentIdx = appData.weaponData.unlockedCount;
+            for (let i = 1; i <= 4; i++) {
+                let path = document.getElementById(`prog-arc-${i}`);
+                if (path) {
+                    let len = path.getTotalLength();
+                    path.style.strokeDasharray = len;
+                    if (currentIdx > i) path.style.strokeDashoffset = 0;
+                    else if (currentIdx === i) {
+                        let targetSlot = appData.weaponData.slots.find(s => s.logIdx === i);
+                        let percent = targetSlot ? (targetSlot.prog / UNLOCK_MAX) : 0;
+                        path.style.strokeDashoffset = len - (len * percent);
+                    } else path.style.strokeDashoffset = len;
+                }
+            }
+
+            document.getElementById('ui-cost').innerText = COST_MAP[lockedCount] || 1;
+            const balanceEl = document.getElementById('ui-balance'); if (balanceEl) balanceEl.innerText = appData.balance;
+            document.getElementById('dev-stones').innerText = appData.totalSpent;
+            document.getElementById('dev-rmb').innerText = (appData.totalSpent * 16.6).toFixed(1);
+            document.getElementById('dev-golds').innerText = appData.totalGolds;
+        }
+
+        // ================= ★ 暂存面板控制 ★ =================
+        function toggleSchemePanel() {
+            if(isCollectionOpen) toggleCollectionPanel(); 
+            playSound('chongzhu');
+            const panel = document.getElementById('scheme-panel'); const scene = document.getElementById('center-scene'); const bottom = document.getElementById('bottom-center');
+            isPanelOpen = !isPanelOpen;
+            if (isPanelOpen) { panel.classList.add('show'); scene.style.left = 'calc(50% - 180px)'; bottom.style.left = 'calc(50% - 180px)'; renderSchemePanel(); } 
+            else { panel.classList.remove('show'); scene.style.left = '50%'; bottom.style.left = '50%'; if (isPreviewing) cancelPreview(); }
+        }
+
+        function createSchemeItemHtml(title, sch, id) {
+            let diamondsHtml = getRarityHtml(sch.slots); let isActive = activeSchemeId === id ? 'active' : '';
+            return `<div class="list-item ${isActive}" onclick="previewScheme('${id}')"><div class="si-title"><span>${title}</span><span class="si-tag">预览中</span></div><div class="si-content"><div class="mini-diamonds" style="margin:0">${diamondsHtml}</div><div class="si-score">风华 ${sch.score}</div></div></div>`;
+        }
+
+        function renderSchemePanel() {
+            const list = document.getElementById('scheme-list');
+            list.innerHTML = `<div class="list-item" onclick="manualSaveScheme()" style="border: 1px dashed rgba(223,181,100,0.5); text-align:center; background: rgba(223,181,100,0.05); color:#dfb564;"><span style="font-size:13px; font-weight:bold;">[+] 覆盖/更新 手动暂存</span></div>`;
+            if (appData.schemeData.manual) { list.innerHTML += createSchemeItemHtml('⭐ 手动暂存方案', appData.schemeData.manual, 'manual'); }
+            const cnNums = ['一', '二', '三', '四', '五'];
+            appData.schemeData.auto.forEach((sch, i) => list.innerHTML += createSchemeItemHtml(`方案${cnNums[i]}`, sch, `auto_${i}`));
+            document.getElementById('sp-actions').style.display = isPreviewing ? 'flex' : 'none';
+        }
+
+        function manualSaveScheme() { playSound('chongzhu'); appData.schemeData.manual = { slots: JSON.parse(JSON.stringify(appData.weaponData.slots)), score: calcScore(appData.weaponData.slots) }; saveData(); if(!isPanelOpen) toggleSchemePanel(); else renderSchemePanel(); showToast("手动暂存已更新"); }
+
+        function autoSaveScheme() {
+            const currentScore = calcScore(appData.weaponData.slots); if (currentScore <= 2000 && appData.weaponData.unlockedCount <= 1) return; 
+            const clone = JSON.parse(JSON.stringify(appData.weaponData.slots));
+            const isDuplicate = appData.schemeData.auto.some(sch => sch.score === currentScore && JSON.stringify(sch.slots) === JSON.stringify(clone));
+            if (isDuplicate) return;
+            appData.schemeData.auto.push({ slots: clone, score: currentScore }); appData.schemeData.auto.sort((a, b) => b.score - a.score); 
+            if (appData.schemeData.auto.length > 5) appData.schemeData.auto.pop();
+        }
+
+        function previewScheme(id) { playSound('chongzhu'); let target = id === 'manual' ? appData.schemeData.manual : appData.schemeData.auto[parseInt(id.split('_')[1])]; if (!target) return; activeSchemeId = id; isPreviewing = true; previewData = JSON.parse(JSON.stringify(target.slots)); renderSchemePanel(); render(); }
+        function cancelPreview() { playSound('chongzhu'); isPreviewing = false; previewData = null; activeSchemeId = null; renderSchemePanel(); render(); }
+
+        // ⭐ 彻底重构的 Enter / 应用重铸逻辑：主动收藏当前属性并取名 ⭐
+        function handleEnterClick() {
+            playSound('chujin');
+            
+            // 如果在预览面板，就保存预览的属性；否则保存当前身上的属性
+            const targetSlots = isPreviewing ? previewData : appData.weaponData.slots;
+            const currentScore = calcScore(targetSlots);
+            const defaultName = WEAPON_TITLES[appData.weaponType];
+            
+            showPrompt(`请输入这把极品神兵的专属名称：<br><span style="font-size:12px; color:#aaa; font-weight:normal; margin-top:10px; display:inline-block;">当前面板风华评分：<span style="color:var(--gold-base);">${currentScore}</span></span>`, defaultName, (customName) => {
+                const cloneSlots = JSON.parse(JSON.stringify(targetSlots));
+                appData.collection.unshift({
+                    id: Date.now(),
+                    type: appData.weaponType,
+                    title: customName,
+                    score: currentScore,
+                    slots: cloneSlots,
+                    date: new Date().toLocaleString()
+                });
+                saveData();
+                if (isCollectionOpen) renderCollection();
+                showToast(`【${customName}】已成功收录至藏音阁！`);
+            });
+        }
+
+        // ================= ★ 藏音阁系统 ★ =================
+        function toggleCollectionPanel() {
+            if(isPanelOpen) toggleSchemePanel(); 
+            playSound('chongzhu');
+            const panel = document.getElementById('collection-panel'); const scene = document.getElementById('center-scene'); const bottom = document.getElementById('bottom-center');
+            isCollectionOpen = !isCollectionOpen;
+            if (isCollectionOpen) { panel.classList.add('show'); scene.style.left = 'calc(50% + 180px)'; bottom.style.left = 'calc(50% + 180px)'; renderCollection(); } 
+            else { panel.classList.remove('show'); scene.style.left = '50%'; bottom.style.left = '50%'; }
+        }
+
+        function delCollection(id) { if(!confirm("确定要销毁该神兵拓印吗？")) return; appData.collection = appData.collection.filter(c => c.id !== id); saveData(); renderCollection(); }
+
+        function renderCollection() {
+            const list = document.getElementById('collection-list'); list.innerHTML = '';
+            if (appData.collection.length === 0) { list.innerHTML = `<div style="color:#666; text-align:center; margin-top:50px; font-size:13px;">暂无收录，在右下角点击[应用重铸]即可主动收录。</div>`; return; }
+            const colorMap = { 'gold': '#dfb564', 'purple': '#a675ca', 'blue': '#6daecc', 'none': '#666' };
+            appData.collection.forEach(c => {
+                let slotsHtml = c.slots.map(s => { let col = colorMap[s.rank]; let t = s.rank === 'none' ? '未通' : formatDispName(s.name); return `<span style="color:${col};">[${s.type.charAt(1) || s.type}] ${t}</span>`; }).join('');
+                list.innerHTML += `<div class="col-item"><div class="col-top"><span class="col-title">${c.title}</span><span class="col-score">风华: ${c.score}</span></div><div class="col-slots">${slotsHtml}</div><div class="col-date">${c.date}</div><div class="col-del" onclick="delCollection(${c.id})">× 销毁</div></div>`;
+            });
+        }
+
+        // ================= ★ 充值系统 ★ =================
+        function openRecharge() { document.getElementById('recharge-overlay').style.display = 'flex'; }
+        function closeRecharge() { document.getElementById('recharge-overlay').style.display = 'none'; }
+        function buyStones(amount) { playSound('chujin'); appData.balance += amount; saveData(); render(); closeRecharge(); showToast(`成功获取 ${amount} 玄石！`); }
+
+        // ================= ★ 重铸核心逻辑 ★ =================
+        function triggerBreakthrough(targetSlot) {
+            isBreakthroughState = true; playSound('lvge'); 
+            const overlay = document.getElementById('breakthrough-overlay'); const rowContainer = document.getElementById('bt-diamonds-row'); const textSub = document.getElementById('bt-sub-text');
+            const logicalOrder = [0, 1, 2, 3, 4]; rowContainer.innerHTML = '';
+            
+            let targetRarityColor = getRarityColorHex(targetSlot.rank);
+            logicalOrder.forEach(logIdx => {
+                let slotData = appData.weaponData.slots.find(s => s.logIdx === logIdx); let html = '';
+                if (logIdx > appData.weaponData.unlockedCount - 1) html = `<div class="bt-diamond"></div>`;
+                else if (logIdx === appData.weaponData.unlockedCount - 1) html = `<div class="bt-diamond unlocked pulse" style="color: ${targetRarityColor}; border-color: ${targetRarityColor};"></div>`;
+                else { let rc = getRarityColorHex(slotData.rank); html = `<div class="bt-diamond unlocked" style="color: ${rc};"></div>`; }
+                rowContainer.innerHTML += html;
+            });
+            
+            const currentTitle = WEAPON_TITLES[appData.weaponType];
+            textSub.innerText = `${currentTitle} · ${targetSlot.type} [ ${formatDispName(targetSlot.name)} ]`;
+            textSub.style.color = targetRarityColor; textSub.style.textShadow = `0 0 20px ${targetRarityColor}, 0 0 40px ${targetRarityColor}`;
+            overlay.style.display = 'flex'; setTimeout(() => overlay.style.opacity = 1, 10);
+        }
+
+        function closeBreakthrough() {
+            if (!isBreakthroughState) return; playSound('chongzhu');
+            const overlay = document.getElementById('breakthrough-overlay'); overlay.style.opacity = 0;
+            setTimeout(() => { overlay.style.display = 'none'; isBreakthroughState = false; render(); }, 300);
+        }
+
+        function handleSpaceClick() {
+            if (isBreakthroughState) { closeBreakthrough(); return; }
+            if (document.getElementById('modal-overlay').style.display === 'flex') { confirmModal(); return; }
+
+            let hasUnprotectedGold = false;
+            appData.weaponData.slots.forEach((s, i) => { if (s.logIdx < appData.weaponData.unlockedCount && !s.locked && i !== 4 && s.rank === 'gold') hasUnprotectedGold = true; });
+            if (hasUnprotectedGold) showModal("当前存在未锁定的金色词条<br>继续重铸将被覆盖，是否确认？", doReforgeAction); else doReforgeAction();
+        }
+
+        function doReforgeAction() {
+            let locks = appData.weaponData.slots.filter((s, i) => s.locked && i !== 4).length; if (locks >= 4) return;
+            let cost = COST_MAP[locks] || 1;
+
+            if (appData.mode === 'real') { if (appData.balance < cost) { openRecharge(); return; } appData.balance -= cost; }
+            
+            playSound('chongzhu'); appData.totalSpent += cost;
+            let goldsThisTurn = 0; const startUnlockedCount = appData.weaponData.unlockedCount; let isBreak = false; let mutatedSlots = [];
+
+            if (appData.weaponData.unlockedCount < 5) {
+                const targetSlot = appData.weaponData.slots.find(s => s.logIdx === appData.weaponData.unlockedCount);
+                if (targetSlot) {
+                    if (Math.random() < CRIT_RATE) targetSlot.prog = UNLOCK_MAX; else targetSlot.prog++;
+                    if (targetSlot.prog >= UNLOCK_MAX) {
+                        isBreak = true;
+                        if (targetSlot.type === '明光') { targetSlot.rank = 'gold'; targetSlot.name = '曜日'; targetSlot.locked = true; goldsThisTurn++; } 
+                        else { 
+                            targetSlot.pity++;
+                            if (targetSlot.pity >= targetSlot.targetPity) { targetSlot.rank = 'gold'; targetSlot.pity = 0; targetSlot.targetPity = generateNextGoldPity(); goldsThisTurn++; appData.totalGolds++; } 
+                            else { targetSlot.rank = Math.random() < PROB.PURPLE ? 'purple' : 'blue'; }
+                            targetSlot.name = rollName(targetSlot.type, targetSlot.rank); rollSubColors(targetSlot);
+                        }
+                        appData.weaponData.unlockedCount++; triggerBreakthrough(targetSlot);
+                    }
+                }
+            } 
+
+            appData.weaponData.slots.forEach((s, i) => {
+                if (s.logIdx < startUnlockedCount && !s.locked && i !== 4) {
+                    const el = document.getElementById(`slot-${i}`);
+                    el.classList.remove('anim-reforge'); void el.offsetWidth; el.classList.add('anim-reforge');
+                    s.pity++; 
+                    if (s.pity >= s.targetPity) { s.rank = 'gold'; s.pity = 0; s.targetPity = generateNextGoldPity(); goldsThisTurn++; appData.totalGolds++; } 
+                    else { s.rank = Math.random() < PROB.PURPLE ? 'purple' : 'blue'; }
+                    s.name = rollName(s.type, s.rank); rollSubColors(s);
+                    mutatedSlots.push({ domId: `slot-${i}`, rank: s.rank });
+                }
+            });
+
+            if (goldsThisTurn >= 2) {
+                let swallowed = false;
+                appData.weaponData.slots.forEach((s, i) => { if (s.logIdx < startUnlockedCount && !s.locked && i !== 4) { s.targetPity = Math.min(90, s.targetPity + 10); swallowed = true; } });
+                if (swallowed) setTimeout(() => showToast("触发双爆吞孔！其余孔位目标保底+10"), 1000);
+            }
+
+            autoSaveScheme(); saveData();
+            if(isPanelOpen) renderSchemePanel();
+            if(!isBreak) render();
+            
+            if(!isBreak) {
+                setTimeout(() => { mutatedSlots.forEach(slotInfo => spawnParticles(slotInfo.domId, slotInfo.rank)); }, 50);
+                if (goldsThisTurn >= 2) {
+                    setTimeout(() => playSound('chujin'), 50); const flash = document.getElementById('flash-layer');
+                    flash.style.background = '#fff'; flash.style.opacity = 0.4; setTimeout(() => flash.style.opacity = 0, 400); showMultiGoldToast(goldsThisTurn);
+                } else if (goldsThisTurn === 1) {
+                    setTimeout(() => playSound('chujin'), 50); const flash = document.getElementById('flash-layer');
+                    flash.style.background = '#fff'; flash.style.opacity = 0.2; setTimeout(() => flash.style.opacity = 0, 150);
+                }
+            }
+        }
+
+        function toggleLock(idx) {
+            playSound('chongzhu'); let locks = appData.weaponData.slots.filter((s, i) => s.locked && i !== 4).length;
+            if (!appData.weaponData.slots[idx].locked && locks >= 3) { showToast("最多只能锁定3个孔位"); return; }
+            appData.weaponData.slots[idx].locked = !appData.weaponData.slots[idx].locked; saveData(); render();
+        }
+
+        let toastTimer; function showToast(msg) {
+            const t = document.getElementById('toast'); t.innerHTML = msg; t.style.opacity = 1;
+            clearTimeout(toastTimer); toastTimer = setTimeout(() => t.style.opacity = 0, 2000);
+        }
+
+        window.addEventListener('keydown', e => {
+            if (e.code === 'Space') { 
+                e.preventDefault(); handleSpaceClick(); 
+                const btn = document.querySelector('.btn-reforge'); if(btn) { btn.style.transform = 'translateY(2px)'; setTimeout(() => btn.style.transform = '', 100); } 
+            }
+            if (e.code === 'Enter' || e.code === 'NumpadEnter') {
+                e.preventDefault();
+                if(document.getElementById('modal-overlay').style.display === 'flex') {
+                    confirmModal();
+                } else if (!isBreakthroughState && document.getElementById('recharge-overlay').style.display !== 'flex') {
+                    handleEnterClick();
+                }
+            }
+            if(document.getElementById('modal-overlay').style.display === 'flex' || document.getElementById('recharge-overlay').style.display === 'flex' || isBreakthroughState) return; 
+            
+            if (e.code === 'KeyR') { e.preventDefault(); toggleSchemePanel(); }
+            if (e.code === 'KeyC') { e.preventDefault(); toggleCollectionPanel(); }
+            if (e.code === 'F5') { e.preventDefault(); handleResetClick(); }
+        });
+
+        window.onload = () => { loadData(); initDOM(); render(); };
+    </script>
+</body>
+</html>
+```
